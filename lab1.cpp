@@ -5,7 +5,9 @@
 #define GLEW_STATIC
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#include <iomanip>
 
+const int VERTEX_NUM = 8712;
 using namespace std;
 int initGLVertices(GLfloat *vertices);
 
@@ -72,12 +74,15 @@ int main()
 
 
 
-    GLfloat *vertices = new GLfloat;
+    GLfloat *vertices;
     int size = initGLVertices(vertices);
+    cout << "The first vertex is " << vertices[0];
     GLfloat vert[size];
-   // for(int i = 0; i < size; i++){
-    //    cout << vertices[i] << " ";// = 0;//verticest[i];
-    //}
+    for(int i = 0; i < 1000; i++){
+        cout << std::fixed << std::setprecision(7) << vertices[i]  << "\n";
+        vert[i] = vertices[i];// << " ";// = 0;//verticest[i];
+        //cout << vert[i] << " \n";
+    }
 
 	//Make active buffer
 	glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
@@ -159,16 +164,22 @@ int initGLVertices(GLfloat *vertices){
     cout << "Reading the raw file. \n";
     fstream fin("./monkey.raw", ios_base::in);
     float temp;
-    GLfloat vertexes[9000];
+    GLfloat vertexes[VERTEX_NUM];
     int i = 0;
     if(fin.good()){
         cout << "File was good for reading.\n";
         while(fin >> temp){
                 
                 vertexes[i] = (temp * .5f);
-                cout << i << "=" << vertexes[i] << " \n";
+                cout << i << "=" << std::fixed << std::setprecision(7) <<  " \n";
                 i++;
             }
+            vertices = vertexes;
+    
+        vertices = new GLfloat[VERTEX_NUM];
+        for(int i = 0; i < 100; i++){
+            vertices[i] = vertexes[i];
+        }
     }
     cout << "Closing the file. \n";
     fin.close();
