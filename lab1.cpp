@@ -2,12 +2,14 @@
 //
 
 #include <iostream>
+#include <vector>
 #define GLEW_STATIC
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
 using namespace std;
-int initGLVertices(GLfloat *vertices);
+std::vector< GLfloat > initGLVertices();
+const int VERTEX_NUM = 8712;
 
 // Shaders loaded into memory as character arrays
 const GLchar* vertexSource =
@@ -71,17 +73,15 @@ int main()
 	glGenBuffers(1, vbo);
 
 
-
-    GLfloat *vertices = new GLfloat;
-    int size = initGLVertices(vertices);
-    GLfloat vert[size];
-   // for(int i = 0; i < size; i++){
-    //    cout << vertices[i] << " ";// = 0;//verticest[i];
-    //}
+    vector<GLfloat> verticesv = initGLVertices();
+    GLfloat vertices[VERTEX_NUM];
+    for(int i = 0; i < verticesv.size(); i++){
+        vertices[i] = verticesv[i];
+    }
 
 	//Make active buffer
 	glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vert), vert, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
 	// Create and compile the vertex shader
 	GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
@@ -130,8 +130,7 @@ int main()
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		// Draw a triangle from the 3 vertices
-		//for(int i = 0; i < 6; i+3)
-            glDrawArrays(GL_TRIANGLES, 0, size);
+            glDrawArrays(GL_TRIANGLES, 0, VERTEX_NUM);
 		//GLFW has a front and back buffer to prevent screen tearing
 		//Front buffer is the one being displayed
 		//Back buffer is the one being rendered to
@@ -154,34 +153,26 @@ int main()
 }
 
 #include <fstream>
-int initGLVertices(GLfloat *vertices){
-    
-    cout << "Reading the raw file. \n";
+vector<GLfloat> initGLVertices(){
+
+    //cout << "Reading the raw file. \n";
     fstream fin("./monkey.raw", ios_base::in);
     float temp;
-    GLfloat vertexes[9000];
-    int i = 0;
+    vector<GLfloat> vertexes;
+    //int i = 0;
     if(fin.good()){
-        cout << "File was good for reading.\n";
+       // cout << "File was good for reading.\n";
         while(fin >> temp){
-                
-                vertexes[i] = (temp * .5f);
-                cout << i << "=" << vertexes[i] << " \n";
-                i++;
+                vertexes.push_back( (temp* .7f) );
+                //cout << i << "=" << (temp* .7f) << " \n";
+                //i++;
             }
     }
-    cout << "Closing the file. \n";
+    //cout << "Closing the file. \n";
     fin.close();
-    return i;
-   /*
-     GLfloat vert[] = {
-		-0.5f, 0.0f, 0.0f,
-		0.0f, -0.5f, 0.0f,
-		-0.5f, -0.5f, 0.0f,
-        0.0f, -0.5f, 0.0f,
-		0.0f, 0.0f, 0.0f,
-		-0.5f, 0.0f, 0.0f
-    };
-    */
+    return vertexes;
+   
+     
+    
 }
 
