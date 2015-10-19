@@ -54,6 +54,7 @@ int main()
 	//On why glewExperimental is set to true:
 	//https://www.opengl.org/wiki/OpenGL_Loading_Library#GLEW_.28OpenGL_Extension_Wrangler.29
 	glewExperimental = GL_TRUE;
+glewExperimental = GL_TRUE; 
 	GLenum glew_err = glewInit();
 	if (glew_err != GLEW_OK)
 		cout << "glewInit failed." << endl;
@@ -64,16 +65,20 @@ int main()
 
 	//opengl code
 	//Create Vertex Array Object and make it active
+cout << "About to create the vao \n";
 	GLuint vao;
+cout << "About to genVertexArray \n";
 	glGenVertexArrays(1, &vao);
+cout << "About to bind array \n";
 	glBindVertexArray(vao);
-
+cout << "About to create the vbo \n";
 	// Create a Vertex Buffer Object and copy the vertex data to it
 	GLuint vbo[1];
 	glGenBuffers(1, vbo);
 
 
 
+    cout << "About to initialize the vertices \n";
     GLfloat *vertices;
     int size = initGLVertices(vertices);
     cout << "The first vertex is " << vertices[0];
