@@ -384,14 +384,14 @@ void mglEnd()
 	
 	// This defines our veiw port for every model
 	// It translates from object cooridnates to eye view
-	MGLMatrix view;
+	MGLMatrix viewport;
 	MGLMatrix model = mModelViewStack[mModelViewTracker];
 	MGLMatrix proj = mProjectionStack[mProjectionTracker];
 	
-	view.SetIdentity();
-	view.TranslateMatrix(1, 1, 1);
-	view.ScaleMatrix(MGLfloat(WIDTH/2), MGLfloat(HEIGHT/2), 1);
-	view.TranslateMatrix(-0.5, -0.5, -0.5);//mVertices[0].X, mVertices[0].Y, 0);
+	viewport.SetIdentity();
+	viewport.TranslateMatrix(1, 1, 1);
+	viewport.ScaleMatrix(MGLfloat(WIDTH/2), MGLfloat(HEIGHT/2), 1);
+	viewport.TranslateMatrix(-0.5, -0.5, -0.5);//mVertices[0].X, mVertices[0].Y, 0);
 		
 	// Check our matrices for an easy one
 	cout << "=======Projection matrix\n";
@@ -400,8 +400,8 @@ void mglEnd()
 	mModelViewStack[mModelViewTracker].seeMatrix();
 	// next we need to take the vertex cooridinates into screen space
 	// To do this we apply the modelview and projection matrices
-	model.MultiplyMatrix(view);		
-	MGLMatrix screenMatrix = proj.MultiplyMatrix(model); //.MultiplyMatrix();
+	//model.MultiplyMatrix();		
+	MGLMatrix screenMatrix = proj.MultiplyMatrix(model).MultiplyMatrix(viewport); //.MultiplyMatrix();
 		
 	cout << "Screen matrix\n";
 	screenMatrix.seeMatrix();
