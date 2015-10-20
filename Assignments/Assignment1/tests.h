@@ -197,7 +197,6 @@ static MGLbyte mgl_cols[6][3] = {
 #include <iostream>
 void mglTests(const int test_number)
 {
-	std::cout << "mgl test";
     switch(test_number)
     {
         case 1:

@@ -194,7 +194,6 @@ public:
 	
 	void seeMatrix(){
 		
-		cout << "\n====================\n";
 			for(int i =0; i < 4; i++){
 					cout << mMatrix[i]  << " " << mMatrix[i+4] <<  " " << mMatrix[i+8] << " " << mMatrix[i+12]  << "\n"; 
 			}
@@ -240,7 +239,7 @@ int mProjectionTracker = 0;
 int VIEW_STATE = 0;
 int VIEW_POLY  = 0;
 
-
+float wDivisor = 1;
 
 
 /**
@@ -314,21 +313,20 @@ void mglBegin(MGLpoly_mode mode)
 		GLVertex vertex1 = screenMatrix.MultVertex(mVertices[1]);
 		GLVertex vertex2 = screenMatrix.MultVertex(mVertices[2]);
 		
-		
 		// Draw the lines, wireframe triangle for now
-		for(int i = 0; i < (size/3); i = (i+2)){
+		for(int i = 0; i < (size)-1; i = (i+3)){
 				
 				cout << "mVertices[" << i <<"] = ( " << mVertices[i].X << "," << mVertices[i].Y << ") -> (" << vertex0.X << ","  << vertex0.Y << ")\n";
 				cout << "mVertices[" << i+1 <<"] = ( " << mVertices[i+1].X << "," << mVertices[i+1].Y << ") -> (" << vertex1.X << ","  << vertex1.Y << ")\n";
 				cout << "mVertices[" << i+2 <<"] = ( " << mVertices[i+2].X << "," << mVertices[i+2].Y << ") -> (" << vertex2.X << ","  << vertex2.Y << ")\n";
 					
-				draw_line(vertex0.X , vertex0.Y, vertex1.X, vertex1.Y);	
-				draw_line(vertex1.X , vertex1.Y, vertex2.X, vertex2.Y);	
-				draw_line(vertex2.X , vertex2.Y, vertex0.X, vertex0.Y);	
+				draw_line(vertex0.X, vertex0.Y, vertex1.X, vertex1.Y);	
+				draw_line(vertex1.X, vertex1.Y, vertex2.X, vertex2.Y);	
+				draw_line(vertex2.X, vertex2.Y, vertex0.X, vertex0.Y);	
 					
-				vertex0 = screenMatrix.MultVertex(mVertices[i+2]);
-				vertex1 = screenMatrix.MultVertex(mVertices[i+3]);
-				vertex2 = screenMatrix.MultVertex(mVertices[i+4]);
+				vertex0 = screenMatrix.MultVertex(mVertices[i+3]);
+				vertex1 = screenMatrix.MultVertex(mVertices[i+4]);
+				vertex2 = screenMatrix.MultVertex(mVertices[i+5]);
 		}
 		
 		for(int i = 0; i < size; i++){
@@ -340,33 +338,68 @@ void mglBegin(MGLpoly_mode mode)
 	 }
 	 
  void RenderQuads(MGLMatrix screenMatrix ){
-	 
-		int size = mVertices.size();
+ 
+	int size = mVertices.size();
 
-		//cout << "Screen matrix\n";
-		//screenMatrix.seeMatrix();
+	cout << "=========RenderQuads============\n";
+	//screenMatrix.seeMatrix();
+	
+	GLVertex vertex0 = screenMatrix.MultVertex(mVertices[0]);
+	GLVertex vertex1 = screenMatrix.MultVertex(mVertices[1]);	
+	
+	float divisor0 = -mVertices[0].Z;
+	float divisor1 = -mVertices[1].Z;	
+
+	// Draw the lines, wireframe quad for now
+	for(int i = 0; i < size-1; i++){
+						
+			vertex0 = screenMatrix.MultVertex(mVertices[i]);
+			vertex1 = screenMatrix.MultVertex(mVertices[i+1]);
+			
+			divisor0 = -mVertices[i].Z;
+			divisor1 = -mVertices[i+1].Z;	
+			
+			if(divisor0 == 0)
+				divisor0 = 1;
+			
+			if(divisor1 == 0)
+				divisor1 = 1;
+			
+			cout << "======Line " << i+1 << "=====\n";
+		    cout << "mVertices[" << i <<"] = ( " << mVertices[i].X << "," << mVertices[i].Y << ") -> (" << vertex0.X/divisor0 << ","  << vertex0.Y/divisor0 << ")\n";
+			cout << "mVertices[" << i+1 <<"] = ( " << mVertices[i+1].X << "," << mVertices[i+1].Y << ") -> (" << vertex0.X/divisor1 << ","  << vertex0.Y/divisor1 << ")\n";
+			
+			draw_line(vertex0.X/divisor0 , vertex0.Y/divisor0, vertex1.X/divisor1, vertex1.Y/divisor1);	
+					
+			
+	}
+	
+	
+	// Draw the last line back to the first
+	vertex0 = screenMatrix.MultVertex(mVertices[size-1]);
+	vertex1 = screenMatrix.MultVertex(mVertices[0]);	
+	
+	divisor0 = -mVertices[size-1].Z;
+	divisor1 = -mVertices[0].Z;	
+	
+	if(divisor0 == 0)
+		divisor0 = 1;
+	
+	if(divisor1 == 0)
+		divisor1 = 1;
 		
-		GLVertex vertex0 = screenMatrix.MultVertex(mVertices[0]);
-		GLVertex vertex1 = screenMatrix.MultVertex(mVertices[1]);		
-		// Draw the lines, wireframe quad for now
-		for(int i = 0; i < size; i++){
+	cout << "======Line " << size << "=====\n";
+	cout << "mVertices[" << size-1 <<"] = ( " << mVertices[size-1].X << "," << mVertices[size-1].Y << ") -> (" << vertex0.X/divisor0 << ","  << vertex0.Y/divisor0<< ")\n";
+	cout << "mVertices[" << 0 <<"] = ( " << mVertices[0].X << "," << mVertices[0].Y << ") -> (" << vertex0.X/divisor1 << ","  << vertex0.Y/divisor1 << ")\n";
 			
-			    cout << "mVertices[" << i <<"] = ( " << mVertices[i].X << "," << mVertices[i].Y << ") -> (" << vertex0.X << ","  << vertex0.Y << ")\n";
-				
-				draw_line(vertex0.X , vertex0.Y, vertex1.X, vertex1.Y);	
-							
-				vertex0 = vertex1;
-				vertex1 = screenMatrix.MultVertex(mVertices[i+1]);
-		}
-		// Draw the last line back to the first
-		draw_line( screenMatrix.MultVertex(mVertices[size-1]).X, screenMatrix.MultVertex(mVertices[size-1]).Y, screenMatrix.MultVertex(mVertices[0]).X, screenMatrix.MultVertex(mVertices[0]).Y);
-			for(int i = 0; i < size; i++){
-				mVertices.pop_back();
-			
-		}
+	draw_line(vertex0.X/divisor0 , vertex0.Y/divisor0, vertex1.X/divisor1, vertex1.Y/divisor1);	
+	
+	for(int i = 0; i < size; i++){
+				mVertices.pop_back();			
+	}
 		
 	 
-	 }
+}
 void mglEnd()
 {
 	
@@ -374,6 +407,17 @@ void mglEnd()
 			
 			MGL_ERROR("Must call mglBegin before mglEnd!");
 			return;
+	}
+	
+	switch(VIEW_STATE){
+		case MGL_MODELVIEW:{	
+			mModelViewStack[mModelViewTracker] = mCurrentMatrix;			
+			break;
+		}
+		case MGL_PROJECTION:{
+			 mProjectionStack[mProjectionTracker] = mCurrentMatrix;
+			break;
+		}
 	}
 	//for(int i = 0; i < (WIDTH*HEIGHT); i++){
 		//cout << "mFrameBuffer = " <<  mFrameBuffer[i] << endl;
@@ -401,18 +445,19 @@ void mglEnd()
 	// next we need to take the vertex cooridinates into screen space
 	// To do this we apply the modelview and projection matrices
 	//model.MultiplyMatrix();		
-	MGLMatrix screenMatrix = proj.MultiplyMatrix(model).MultiplyMatrix(viewport); //.MultiplyMatrix();
+	MGLMatrix screenMatrix = model.MultiplyMatrix(proj).MultiplyMatrix(viewport); //.MultiplyMatrix();
 		
-	cout << "Screen matrix\n";
+	cout << "========Screen matrix\n";
 	screenMatrix.seeMatrix();
 	
 	if(VIEW_POLY == MGL_TRIANGLES){
 			RenderTriangles(screenMatrix);
+			
 		return;
 	}
 	else if(VIEW_POLY == MGL_QUADS){
 		
-			RenderQuads(screenMatrix);	
+			RenderQuads(screenMatrix);
 		return;
 	}
 	//if we reached this point something went qrong, throw an error
@@ -520,6 +565,7 @@ void draw_line(int x0, int y0, int x1, int y1)
 void mglVertex2(MGLfloat x,
                 MGLfloat y)              
 {
+	if(!mHasBegun)MGL_ERROR("mglBegin must be called first");
 	mglVertex3(x,y,0);
 }
 
@@ -537,7 +583,7 @@ void mglVertex3(MGLfloat x,
 	vertex.X = x;
 	vertex.Y = y;
 	vertex.Z = z;
-	cout << vertex.X << " " << vertex.Y  << " " <<  vertex.Z << endl;
+	//cout << vertex.X << " " << vertex.Y  << " " <<  vertex.Z << endl;
 	mVertices.push_back(vertex);
 		
 }
@@ -576,22 +622,27 @@ void mglMatrixMode(MGLmatrix_mode mode)
 void mglPushMatrix()
 {
 		
-	cout << "Pushing a matrix\n";
-	mCurrentMatrix.seeMatrix();
+	
+	//mCurrentMatrix.seeMatrix();
 	
 	switch(VIEW_STATE){
 		case MGL_MODELVIEW:{
+			cout << "Pushing a  modelview matrix\n";
+			
+			mCurrentMatrix.seeMatrix();
 			mModelViewStack[mModelViewTracker++] = mCurrentMatrix;	
 			mCurrentMatrix = mModelViewStack[mModelViewTracker-1] ;			
 			break;
 		}
 		case MGL_PROJECTION:{
+			cout << "Pushing a projection matrix\n";
+			mCurrentMatrix.seeMatrix();
 			 mProjectionStack[mProjectionTracker++] = mCurrentMatrix;
 			 mCurrentMatrix = mProjectionStack[mProjectionTracker++];
 			break;
 		}
 	}
-	
+	cout << "================\n";
 	mCurrentMatrix.seeMatrix();
 	cout << "End pushing a matrix\n";
 	
@@ -624,9 +675,11 @@ void mglPopMatrix()
 			break;
 		}
 	}
+	cout << "=============\n";
+
 	mCurrentMatrix.seeMatrix();
 	cout << "end popping sequence\n";
-}
+	}
 
 /**
  * Replace the current matrix with the identity.
@@ -725,19 +778,20 @@ void mglFrustum(MGLfloat left,
 	MGLMatrix perspective;
 	
 	perspective.SetIdentity();
-	perspective[0] = 2/(right - left);
-	perspective[5] = 2/(top - bottom);
-	perspective[10] = -2/(far - near);
+	perspective[0] = (2*near)/(right - left);
+	perspective[5] = (2*near)/(top - bottom);
 	
-	perspective[8] =  -(right+left)/(right - left);
-	perspective[9] = -(top+bottom)/(top - bottom);
+	perspective[8] =  (right+left)/(right - left);
+	perspective[9] = (top+bottom)/(top - bottom);
+	perspective[10] = -((far+near)/(far - near));
+	perspective[11] = -1;
+	
 	perspective[14] = (-2*far*near)/(far - near);
 	perspective[15] = 0;
 	
 	mCurrentMatrix.MultiplyMatrix(perspective);
 	
-	cout << "Perspective \n";
-	mCurrentMatrix.seeMatrix();
+	
 	
 }
 
@@ -765,12 +819,8 @@ void mglOrtho(MGLfloat left,
 	orthographic[14] = -(far+near)/(far - near);
 
 
-	//orthographic.seeMatrix();
-	
-	//mCurrentMatrix = 
 	mCurrentMatrix.MultiplyMatrix(orthographic);
-	cout << "Orthographic \n";
-	mCurrentMatrix.seeMatrix();
+
 	
 }
 
