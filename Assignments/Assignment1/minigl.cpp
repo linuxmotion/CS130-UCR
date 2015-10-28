@@ -8,7 +8,8 @@
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
-#include <vector> // must replace
+#include <cmath>
+#include <vector> 
 #include "minigl.h"
 
 using namespace std;
@@ -95,23 +96,52 @@ public:
 		
 	}
 	
-	void RotateMatrix(MGLfloat angle, MGLfloat x, MGLfloat y,MGLfloat z ){
+#define PI 3.14159265
+	#include <cmath>
+	void RotateMatrix(MGLfloat angle, MGLfloat X, MGLfloat Y,MGLfloat Z ){
 		
 		
-		MGLMatrix zrotate, yrotate, xrotate;
+		MGLMatrix Rotate;
 		
-		zrotate.SetIdentity();
-		yrotate.SetIdentity();
-		xrotate.SetIdentity();
+
 		
+		MGLfloat normal = sqrt(X*X + Y*Y + Z*Z );
+		MGLfloat x = X/normal; 
+		MGLfloat y = Y/normal;
+		MGLfloat z = Z/normal;
+		
+		MGLfloat c  = cos((angle*PI)/180);
+		MGLfloat s = sin((angle*PI)/180); 
 		//float cosh = cos(angle);
 		//float sin  = sin(angle);
 		
 		//mMatrix[0] = 
 		
+		Rotate[0] = ((x*x)*(1-c)) + c;
+		Rotate[1] = ((y*x)*(1-c)) + z*s;
+		Rotate[2] = ((x*z)*(1-c)) - y*s;
+		Rotate[3] = 0;
+		
+		Rotate[4] = ((y*x)*(1-c)) - z*s;
+		Rotate[5] = ((y*y)*(1-c)) + c;
+		Rotate[6] = ((y*z)*(1-c)) + x*s;
+		Rotate[7] =  0;
+		
+		Rotate[8]  = ((x*z)*(1-c)) + y*s;
+		Rotate[9]  = ((y*z)*(1-c)) - x*s;
+		Rotate[10] = ((z*z)*(1-c)) + c;
+		Rotate[11] = 0;
 		
 			
+		Rotate[12] = 0;
+		Rotate[13] = 0;
+		Rotate[14] = 0;
+		Rotate[15] = 1;
+		cout << "Rotating matrix\n";
+		Rotate.seeMatrix();
 		
+		MGLMatrix m  = Rotate.MultiplyMatrix(*this);
+		this->SetMatrix(m);
 	}
 	
 	void TranslateMatrix(MGLfloat x, MGLfloat y,MGLfloat z ){
@@ -212,10 +242,16 @@ public:
 
 
 
-void draw_line(int x0, int y0, int x1, int y1);
-
+void draw_line(MGLbyte color, int x0, int y0, int x1, int y1);
+void set_pixel(MGLbyte color, float x, float y);
 	 
-
+struct ColorRGB{
+		
+		MGLbyte r;
+		MGLbyte g;
+		MGLbyte b;
+	
+} mColorRGB;
 
 //*********Global Variables**********//
 bool mHasBegun = false;
@@ -293,11 +329,30 @@ void mglBegin(MGLpoly_mode mode)
 	
 }
 
+MGLfloat max(MGLfloat a, MGLfloat b){
+	
+	return (a > b)? a : b;
+	
+}
+
+MGLfloat min(MGLfloat a, MGLfloat b){
+	
+	return (a < b)? a : b;
+	
+}
+
+MGLfloat TriangleArea(GLVertex p1, GLVertex p2, GLVertex p3){
+	
+	
+	
+	return ((p1.X*p2.Y + p2.X*p3.Y + p3.X*p1.Y - p2.X*p1.Y - p3.X*p2.X - p1.X*p3.Y)/2);
+
+}
+
 /**
  * Stop specifying the vertices for a group of primitives.
- */
- 
- void RenderTriangles(MGLMatrix screenMatrix){
+ */ 
+ void RenderTriangles(MGLMatrix screenMatrix, bool wireframe){
 	 
 		int size = mVertices.size();
 		int chop = size % 3;
@@ -313,6 +368,66 @@ void mglBegin(MGLpoly_mode mode)
 		GLVertex vertex1 = screenMatrix.MultVertex(mVertices[1]);
 		GLVertex vertex2 = screenMatrix.MultVertex(mVertices[2]);
 		
+		MGLfloat minY  = min(vertex0.Y, min(vertex1.Y, vertex2.Y));
+		MGLfloat minX  = min(vertex0.X, min(vertex1.X, vertex2.X));
+		MGLfloat maxX  = max(vertex0.X, max(vertex1.X, vertex2.X));
+		MGLfloat maxY  = max(vertex0.Y, max(vertex1.Y, vertex2.Y));
+		//cout << minY << "|" << minX << "|" << maxY << "|"<< maxX << "\n";
+		
+		MGLfloat alpha = 0;
+		MGLfloat beta = 0;
+		MGLfloat gamma = 0;
+		
+		MGLfloat totalArea = TriangleArea(vertex0, vertex1, vertex2);
+		GLVertex point;
+		
+		if(!wireframe){
+		//Rasterize triangles
+		for(int z = 0; z < (size)-1; z = (z+3)){ // for every three vertices
+		
+			for(int i = minX; i <= maxX; i++){ // loop from [min x, max x]
+				point.X = i;
+				for(int j = minY; j < maxY; j++){ // loop from [min y, max y]
+					
+					
+					//point.Y = j;
+					/*
+					 * alpha = (TriangleArea(point, vertex1,vertex2)/totalArea);
+					beta = (TriangleArea(point, vertex2,vertex0)/totalArea);
+					*/
+					alpha = ((vertex1.Y - vertex2.Y)*i + (vertex1.X - vertex2.X)*j + (vertex2.X*vertex1.Y) + (vertex1.X*vertex2.Y))/
+						((vertex1.Y - vertex2.Y)*vertex0.X + (vertex1.X - vertex2.X)*vertex0.Y + (vertex2.X*vertex1.Y) + (vertex1.X*vertex2.Y));
+					beta = ((vertex2.Y - vertex0.Y)*i + (vertex2.X - vertex0.X)*j + (vertex2.X*vertex0.Y) + (vertex0.X*vertex2.Y))/
+						((vertex2.Y - vertex0.Y)*vertex1.X + (vertex2.X - vertex0.X)*vertex1.Y + (vertex2.X*vertex0.Y) + (vertex0.X*vertex2.Y));;
+					
+					
+					gamma = 1 - alpha - gamma;
+					
+					MGLbyte color = alpha*mColorRGB.r + beta*mColorRGB.g + gamma*mColorRGB.b;  
+					MGLbyte colortep = 0;
+					colortep = (colortep  | 10001001);
+					cout << alpha << "|" << beta << "|" << gamma << "\n";
+					
+					if((alpha < 1) && (beta  < 1) && (gamma < 1) && (alpha >= 0) && (beta  >= 0 ) && (gamma >= 0)){
+						cout << "setting pixel " << i << " " << j << " to color" << color << "\n";
+						set_pixel(colortep, float(i), float(j));
+					}
+				}
+					
+			}
+			vertex0 = screenMatrix.MultVertex(mVertices[z+3]);
+			vertex1 = screenMatrix.MultVertex(mVertices[z+4]);
+			vertex2 = screenMatrix.MultVertex(mVertices[z+5]);
+			
+		}
+		
+		for(int i = 0; i < size; i++){
+				mVertices.pop_back();
+			
+		}
+		return;
+	}
+		
 		// Draw the lines, wireframe triangle for now
 		for(int i = 0; i < (size)-1; i = (i+3)){
 				
@@ -320,9 +435,9 @@ void mglBegin(MGLpoly_mode mode)
 				cout << "mVertices[" << i+1 <<"] = ( " << mVertices[i+1].X << "," << mVertices[i+1].Y << ") -> (" << vertex1.X << ","  << vertex1.Y << ")\n";
 				cout << "mVertices[" << i+2 <<"] = ( " << mVertices[i+2].X << "," << mVertices[i+2].Y << ") -> (" << vertex2.X << ","  << vertex2.Y << ")\n";
 					
-				draw_line(vertex0.X, vertex0.Y, vertex1.X, vertex1.Y);	
-				draw_line(vertex1.X, vertex1.Y, vertex2.X, vertex2.Y);	
-				draw_line(vertex2.X, vertex2.Y, vertex0.X, vertex0.Y);	
+				draw_line(0,vertex0.X, vertex0.Y, vertex1.X, vertex1.Y);	
+				draw_line(0,vertex1.X, vertex1.Y, vertex2.X, vertex2.Y);	
+				draw_line(0,vertex2.X, vertex2.Y, vertex0.X, vertex0.Y);	
 					
 				vertex0 = screenMatrix.MultVertex(mVertices[i+3]);
 				vertex1 = screenMatrix.MultVertex(mVertices[i+4]);
@@ -337,19 +452,64 @@ void mglBegin(MGLpoly_mode mode)
 	 
 	 }
 	 
- void RenderQuads(MGLMatrix screenMatrix ){
+ void RenderQuads(MGLMatrix screenMatrix, bool triangulate ){
  
 	int size = mVertices.size();
 
 	cout << "=========RenderQuads============\n";
 	//screenMatrix.seeMatrix();
 	
-	GLVertex vertex0 = screenMatrix.MultVertex(mVertices[0]);
-	GLVertex vertex1 = screenMatrix.MultVertex(mVertices[1]);	
+
 	
 	float divisor0 = -mVertices[0].Z;
 	float divisor1 = -mVertices[1].Z;	
+	float divisor2 = -mVertices[2].Z;	
+	
+	if(divisor0 == 0)
+			divisor0 = 1;
+			
+	if(divisor1 == 0)
+			divisor1 = 1;
+			
+	if(divisor2 == 0)
+		divisor2 = 1;
+	
+		GLVertex vertex0 = screenMatrix.MultVertex(mVertices[0]);
+		GLVertex vertex1 = screenMatrix.MultVertex(mVertices[1]);
+		GLVertex vertex2 = screenMatrix.MultVertex(mVertices[2]);
 
+
+		if(triangulate){	
+				
+					
+					// draw first three
+				draw_line(0,vertex0.X/divisor0, vertex0.Y/divisor0, vertex1.X/divisor1, vertex1.Y/divisor1);	
+				draw_line(0,vertex1.X/divisor1, vertex1.Y/divisor1, vertex2.X/divisor2, vertex2.Y/divisor2);	
+				draw_line(0,vertex2.X/divisor2, vertex2.Y/divisor2, vertex0.X/divisor0, vertex0.Y/divisor0);	
+					
+					
+				vertex0 = screenMatrix.MultVertex(mVertices[2]);
+				vertex1 = screenMatrix.MultVertex(mVertices[3]);
+				vertex2 = screenMatrix.MultVertex(mVertices[0]);
+				
+					float divisor0 = -mVertices[2].Z;
+					float divisor1 = -mVertices[3].Z;	
+					float divisor2 = -mVertices[0].Z;	
+				// draw second three
+				draw_line(0,vertex0.X/divisor0, vertex0.Y/divisor0, vertex1.X/divisor1, vertex1.Y/divisor1);	
+				draw_line(0,vertex1.X/divisor1, vertex1.Y/divisor1, vertex2.X/divisor2, vertex2.Y/divisor2);	
+				draw_line(0,vertex2.X/divisor2, vertex2.Y/divisor2, vertex0.X/divisor0, vertex0.Y/divisor0);		
+		
+		for(int i = 0; i < size; i++){
+				mVertices.pop_back();
+			
+		}
+		
+		/////////////////////////////////////////////////////////
+	
+
+		return;
+	}
 	// Draw the lines, wireframe quad for now
 	for(int i = 0; i < size-1; i++){
 						
@@ -369,7 +529,7 @@ void mglBegin(MGLpoly_mode mode)
 		    cout << "mVertices[" << i <<"] = ( " << mVertices[i].X << "," << mVertices[i].Y << ") -> (" << vertex0.X/divisor0 << ","  << vertex0.Y/divisor0 << ")\n";
 			cout << "mVertices[" << i+1 <<"] = ( " << mVertices[i+1].X << "," << mVertices[i+1].Y << ") -> (" << vertex0.X/divisor1 << ","  << vertex0.Y/divisor1 << ")\n";
 			
-			draw_line(vertex0.X/divisor0 , vertex0.Y/divisor0, vertex1.X/divisor1, vertex1.Y/divisor1);	
+			draw_line(0, vertex0.X/divisor0 , vertex0.Y/divisor0, vertex1.X/divisor1, vertex1.Y/divisor1);	
 					
 			
 	}
@@ -392,7 +552,7 @@ void mglBegin(MGLpoly_mode mode)
 	cout << "mVertices[" << size-1 <<"] = ( " << mVertices[size-1].X << "," << mVertices[size-1].Y << ") -> (" << vertex0.X/divisor0 << ","  << vertex0.Y/divisor0<< ")\n";
 	cout << "mVertices[" << 0 <<"] = ( " << mVertices[0].X << "," << mVertices[0].Y << ") -> (" << vertex0.X/divisor1 << ","  << vertex0.Y/divisor1 << ")\n";
 			
-	draw_line(vertex0.X/divisor0 , vertex0.Y/divisor0, vertex1.X/divisor1, vertex1.Y/divisor1);	
+	draw_line(0, vertex0.X/divisor0 , vertex0.Y/divisor0, vertex1.X/divisor1, vertex1.Y/divisor1);	
 	
 	for(int i = 0; i < size; i++){
 				mVertices.pop_back();			
@@ -451,23 +611,23 @@ void mglEnd()
 	screenMatrix.seeMatrix();
 	
 	if(VIEW_POLY == MGL_TRIANGLES){
-			RenderTriangles(screenMatrix);
+			RenderTriangles(screenMatrix, true);
 			
 		return;
 	}
 	else if(VIEW_POLY == MGL_QUADS){
 		
-			RenderQuads(screenMatrix);
+			RenderQuads(screenMatrix, false);
 		return;
 	}
 	//if we reached this point something went qrong, throw an error
 	MGL_ERROR("A valid polygon type was not chosen");
 	
 	
-	
+
 }
 
-void set_pixel(float x, float y)
+void set_pixel(MGLbyte color, float x, float y)
 {
     //float col[] = { 1.0, 1.0, 1.0 };
     //set_pixel(x,y,col);
@@ -475,10 +635,12 @@ void set_pixel(float x, float y)
 		return ;
     
     mFrameBuffer[(WIDTH*int(y)) + int(x)] = 10001000;
+    
+    //mFrameBuffer[(WIDTH*int(y)) + int(x)] = 10001000;
 }
 
 
-void draw_line(int x0, int y0, int x1, int y1)
+void draw_line(MGLbyte color, int x0, int y0, int x1, int y1)
 {
 	//cout << "X0 = " << x0 << " Y0 = " << y0 << "\n";
 	//cout << "X1 = " << x1 << " Y0 = " << y1 << "\n";
@@ -490,11 +652,11 @@ void draw_line(int x0, int y0, int x1, int y1)
         
             if(y0 < y1){
                 for(int y = y0; y < y1; ++y)
-                    set_pixel(x0, y);
+                    set_pixel(color, x0, y);
             }else if(y0 > y1){
                 
                 for(int y = y0; y > y1; --y)
-                    set_pixel(x0, y);
+                    set_pixel(color, x0, y);
             }
             return;
     
@@ -507,14 +669,14 @@ void draw_line(int x0, int y0, int x1, int y1)
     if(x1 > x0){ 
         if((-1 <= m) && (m <= 1)){
             for(int x = x0; x < x1; ++x)
-                set_pixel(x, m*x + b);
+                set_pixel(color, x, m*x + b);
         }else if((m >= 1) || (m <= -1)){ // y = m*x+b -> (y-b)/m = x
             //cout << "abs Slope is greater than 1\n";
             if(y0 > y1){
                 for(int y = y0; y > y1; --y){
                 if(m <= -1)
                     //cout << "y = " << y << " x = " << ((y-b)/m) << "\n";
-                set_pixel(((y-b)/m), y);
+                set_pixel(color, ((y-b)/m), y);
                 }
                 
             }else{
@@ -522,7 +684,7 @@ void draw_line(int x0, int y0, int x1, int y1)
                 for(int y = y0; y < y1; ++y){
                 if(m <= -1)
                     //cout << "y = " << y << " x = " << ((y-b)/m) << "\n";
-                set_pixel(((y-b)/m), y);
+                set_pixel(color, ((y-b)/m), y);
                 }
                 
             }
@@ -532,20 +694,20 @@ void draw_line(int x0, int y0, int x1, int y1)
     } else if(x1 < x0){
         if((-1 <= m ) && (m <= 1)){
             for(int x = x0; x > x1; --x)
-                set_pixel(x, m*x + b);
+                set_pixel(color, x, m*x + b);
         }else if((m >= 1) || (m <= -1)){ 
             //cout << "where am i 1\n";
             if(y0 < y1){
                // cout << "where am i 2\n";
                 for(int y = y0; y < y1; ++y){
                 //cout << "y = " << y << " x = " << ((y-b)/m) << "\n";
-                set_pixel(((y-b)/m), y);
+                set_pixel(color, ((y-b)/m), y);
                 }
                 
             }else{
                 // y = m*x+b -> (y-b)/m = x
                 for(int y = y0; y > y1; --y)
-                set_pixel(((y-b)/m), y);
+                set_pixel(color, ((y-b)/m), y);
                 }
             
             
@@ -831,4 +993,8 @@ void mglColor(MGLbyte red,
               MGLbyte green,
               MGLbyte blue)
 {
+	
+	mColorRGB.b = blue;
+	mColorRGB.g = green;
+	mColorRGB.r = red;
 }
