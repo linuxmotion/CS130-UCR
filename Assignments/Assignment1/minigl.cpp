@@ -14,30 +14,19 @@
 
 using namespace std;
 
+struct ColorRGB{
+	MGLbyte r;
+	MGLbyte g;
+	MGLbyte b;
+	
+}mColorRGB;
+
 struct GLVertex{
 	MGLfloat X;
 	MGLfloat Y;
 	MGLfloat Z;
+	MGLpixel mPixelColor; 
 } ;
-
-class Vector{
-	
-	MGLfloat vector[3];
-	
-	Vector(MGLfloat x, MGLfloat y, MGLfloat z){
-		
-		vector[0] = x; 
-		vector[1] = y; 
-		vector[2] = z;
-	}
-	
-	MGLfloat operator [](int i){
-		
-	return vector[i];
-	}
-	
-	
-};
 
 class MGLMatrix{
 
@@ -90,7 +79,9 @@ public:
 		scalar[5] = y;
 		scalar[10] = z;
 		
-		this->MultiplyMatrix(scalar);
+        //scalar.MultiplyMatrix(*this);
+		this->MultiplyMatrixR(scalar);
+       // this->SetMatrix(scalar);
 		
 		
 		
@@ -140,8 +131,9 @@ public:
 		cout << "Rotating matrix\n";
 		Rotate.seeMatrix();
 		
-		MGLMatrix m  = Rotate.MultiplyMatrix(*this);
-		this->SetMatrix(m);
+		//Rotate.MultiplyMatrix(*this);
+		//this->SetMatrix(Rotate);
+        this->MultiplyMatrixR(Rotate);
 	}
 	
 	void TranslateMatrix(MGLfloat x, MGLfloat y,MGLfloat z ){
@@ -153,14 +145,16 @@ public:
 			translation[13] = y;
 			translation[14] = z;
 			
-			this->MultiplyMatrix(translation);
+            //translation.MultiplyMatrix(*this);
+			this->MultiplyMatrixR(translation);
+           // this->SetMatrix(translation);
 			
 		
 	}
 	
 	// Matrix multiplication is done left to right
 	// the matrix "multiply" will be applied from the left
-	// i.e.  A = B*A
+	// i.e.  MultilplyMatrix(B) -> A = B*A
 	MGLMatrix MultiplyMatrix(MGLMatrix multiple){
 		
 	MGLfloat temp[16];
@@ -179,7 +173,27 @@ public:
 			
 		return *this;
 	}
+	// Matrix multiplication is done left to right
+	// the matrix "multiply" will be applied from the left
+	// i.e.  MultilplyMatrix(B) -> A = A*B
+    MGLMatrix MultiplyMatrixR(MGLMatrix multiple){
+		
+	MGLfloat temp[16];
 	
+		// for each row
+		for(int i = 0; i < 4; i++){			
+			// multiple against each column of new matrix
+			for(int j = 0; j < 4; j++){
+				int step = (j*4);
+				temp[step+i]	= multiple[step]*mMatrix[i] + multiple[step+1]*mMatrix[i+4] + multiple[step+2]*mMatrix[i+8] + multiple[step+3]*mMatrix[i+12];
+			}			
+		}		
+		// reassign new matrix
+		for(int i = 0; i < 16; i++)
+			mMatrix[i] = temp[i];	
+			
+		return *this;
+	}
 	
 	GLVertex MultVertex(GLVertex vertex){
 		
@@ -245,13 +259,7 @@ public:
 void draw_line(MGLbyte color, int x0, int y0, int x1, int y1);
 void set_pixel(MGLbyte color, float x, float y);
 	 
-struct ColorRGB{
-		
-		MGLbyte r;
-		MGLbyte g;
-		MGLbyte b;
-	
-} mColorRGB;
+
 
 //*********Global Variables**********//
 bool mHasBegun = false;
@@ -262,6 +270,10 @@ MGLMatrix mCurrentMatrix;
 
 vector<GLVertex> mVertices;
 MGLpixel mFrameBuffer[(WIDTH*HEIGHT)];
+MGLpixel mZBuffer[(WIDTH*HEIGHT)];
+MGLpixel mColor;
+
+
 
 // We create out modelview stack
 MGLMatrix mModelViewStack[32];
@@ -593,9 +605,9 @@ void mglEnd()
 	MGLMatrix proj = mProjectionStack[mProjectionTracker];
 	
 	viewport.SetIdentity();
-	viewport.TranslateMatrix(1, 1, 1);
+    viewport.TranslateMatrix(-0.5, -0.5, -0.5);//mVertices[0].X, mVertices[0].Y, 0);
 	viewport.ScaleMatrix(MGLfloat(WIDTH/2), MGLfloat(HEIGHT/2), 1);
-	viewport.TranslateMatrix(-0.5, -0.5, -0.5);//mVertices[0].X, mVertices[0].Y, 0);
+	viewport.TranslateMatrix(1, 1, 1);
 		
 	// Check our matrices for an easy one
 	cout << "=======Projection matrix\n";
@@ -605,7 +617,8 @@ void mglEnd()
 	// next we need to take the vertex cooridinates into screen space
 	// To do this we apply the modelview and projection matrices
 	//model.MultiplyMatrix();		
-	MGLMatrix screenMatrix = model.MultiplyMatrix(proj).MultiplyMatrix(viewport); //.MultiplyMatrix();
+	MGLMatrix screenMatrix = model.MultiplyMatrix(proj).MultiplyMatrix(viewport);
+    //= model.MultiplyMatrix(proj).MultiplyMatrix(viewport); //.MultiplyMatrix();
 		
 	cout << "========Screen matrix\n";
 	screenMatrix.seeMatrix();
@@ -634,7 +647,7 @@ void set_pixel(MGLbyte color, float x, float y)
     if((x < 0) || (x > WIDTH) || (y < 0) || (y > HEIGHT)) // not a vaild pixel, clip it, may need for rasterizer
 		return ;
     
-    mFrameBuffer[(WIDTH*int(y)) + int(x)] = 10001000;
+    mFrameBuffer[(WIDTH*int(y)) + int(x)] = mColor;
     
     //mFrameBuffer[(WIDTH*int(y)) + int(x)] = 10001000;
 }
@@ -951,7 +964,7 @@ void mglFrustum(MGLfloat left,
 	perspective[14] = (-2*far*near)/(far - near);
 	perspective[15] = 0;
 	
-	mCurrentMatrix.MultiplyMatrix(perspective);
+	mCurrentMatrix.MultiplyMatrixR(perspective);
 	
 	
 	
@@ -981,7 +994,7 @@ void mglOrtho(MGLfloat left,
 	orthographic[14] = -(far+near)/(far - near);
 
 
-	mCurrentMatrix.MultiplyMatrix(orthographic);
+	mCurrentMatrix.MultiplyMatrixR(orthographic);
 
 	
 }
@@ -993,8 +1006,12 @@ void mglColor(MGLbyte red,
               MGLbyte green,
               MGLbyte blue)
 {
+	mColor = 0;
+    MGL_SET_RED(mColor,red);
+    MGL_SET_GREEN(mColor,green);
+    MGL_SET_BLUE(mColor,blue);
 	
 	mColorRGB.b = blue;
-	mColorRGB.g = green;
 	mColorRGB.r = red;
+	mColorRGB.g = green;
 }
