@@ -194,7 +194,6 @@ static MGLbyte mgl_cols[6][3] = {
     {255, 255, 0}
 };
 
-#include <iostream>
 void mglTests(const int test_number)
 {
     switch(test_number)
@@ -289,14 +288,14 @@ void mglTests(const int test_number)
 
             mglTranslate(0.0, 0.0, -5.0);
             mglRotate(-60, -1.0, 1.0, -1.0);
-
             for (int i = 0; i < 6; ++i) {
                 MGLfloat* tran = mgl_trans[i];
                 MGLfloat* rot = mgl_rots[i];
                 MGLbyte* col = mgl_cols[i];
-
-                mglPushMatrix();
-
+                
+                
+				
+                mglPushMatrix();		
                 mglTranslate(tran[0], tran[1], tran[2]);
                 mglRotate(rot[0], rot[1], rot[2], rot[3]);
                 

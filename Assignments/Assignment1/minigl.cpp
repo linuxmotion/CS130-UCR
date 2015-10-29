@@ -257,7 +257,9 @@ public:
 
 
 void draw_line(MGLpixel color1,MGLpixel color2, int x0, int y0, int x1, int y1);
+void draw_line(MGLpixel color1,MGLpixel color2, int x0, int y0, int x1, int y1, float depth1, float depth2);
 void set_pixel(MGLpixel color, float x, float y);
+void set_pixel(MGLpixel color, float x, float y, float depth);
 	 
 
 
@@ -270,7 +272,7 @@ MGLMatrix mCurrentMatrix;
 
 vector<GLVertex> mVertices;
 MGLpixel mFrameBuffer[(WIDTH*HEIGHT)];
-MGLpixel mZBuffer[(WIDTH*HEIGHT)];
+MGLfloat mZBuffer[(WIDTH*HEIGHT)];
 MGLpixel mColor;
 
 
@@ -337,6 +339,11 @@ void mglBegin(MGLpoly_mode mode)
 {
 	VIEW_POLY = mode;
 	mHasBegun = true;
+	
+	
+	for(int i = 0; i < WIDTH*HEIGHT; i++){
+			mZBuffer[i] = 0;
+	}
 	
 	
 }
@@ -415,14 +422,16 @@ MGLfloat TriangleArea(GLVertex p1, GLVertex p2, GLVertex p3){
 					
 					gamma = 1 - alpha - gamma;
 					
-					MGLbyte color = alpha*mColorRGB.r + beta*mColorRGB.g + gamma*mColorRGB.b;  
-					MGLbyte colortep = 0;
-					colortep = (colortep  | 10001001);
+					MGLpixel color =0 ; 
+					MGL_SET_RED(color,MGLbyte(alpha*mColorRGB.r) );
+					MGL_SET_GREEN(color,MGLbyte(alpha*mColorRGB.g) );
+					MGL_SET_BLUE(color,MGLbyte(alpha*mColorRGB.b) );
+	
 					cout << alpha << "|" << beta << "|" << gamma << "\n";
 					
 					if((alpha < 1) && (beta  < 1) && (gamma < 1) && (alpha >= 0) && (beta  >= 0 ) && (gamma >= 0)){
 						cout << "setting pixel " << i << " " << j << " to color" << color << "\n";
-						set_pixel(colortep, float(i), float(j));
+						set_pixel(color, float(i), float(j));
 					}
 				}
 					
@@ -443,13 +452,13 @@ MGLfloat TriangleArea(GLVertex p1, GLVertex p2, GLVertex p3){
 		// Draw the lines, wireframe triangle for now
 		for(int i = 0; i < (size)-1; i = (i+3)){
 				
-				cout << "mVertices[" << i <<"] = ( " << mVertices[i].X << "," << mVertices[i].Y << ") -> (" << vertex0.X << ","  << vertex0.Y << ")\n";
-				cout << "mVertices[" << i+1 <<"] = ( " << mVertices[i+1].X << "," << mVertices[i+1].Y << ") -> (" << vertex1.X << ","  << vertex1.Y << ")\n";
-				cout << "mVertices[" << i+2 <<"] = ( " << mVertices[i+2].X << "," << mVertices[i+2].Y << ") -> (" << vertex2.X << ","  << vertex2.Y << ")\n";
+				cout << "mVertices[" << i   <<"] = ( " << mVertices[i].X   << "," << mVertices[i].Y   << "," << mVertices[i].Z   << ") -> (" << vertex0.X << ","  << vertex0.Y << ","  << vertex0.Z << ")\n";
+				cout << "mVertices[" << i+1 <<"] = ( " << mVertices[i+1].X << "," << mVertices[i+1].Y << "," << mVertices[i+1].Z << ") -> (" << vertex1.X << ","  << vertex1.Y << ","  << vertex1.Z << ")\n";
+				cout << "mVertices[" << i+2 <<"] = ( " << mVertices[i+2].X << "," << mVertices[i+2].Y << "," << mVertices[i+2].Z << ") -> (" << vertex2.X << ","  << vertex2.Y << ","  << vertex2.Z << ")\n";
 					
-				draw_line(mVertices[i].mPixelColor, mVertices[i+1].mPixelColor,vertex0.X, vertex0.Y, vertex1.X, vertex1.Y);	
-				draw_line(mVertices[i+1].mPixelColor, mVertices[i+2].mPixelColor,vertex1.X, vertex1.Y, vertex2.X, vertex2.Y);	
-				draw_line(mVertices[i+2].mPixelColor, mVertices[i].mPixelColor,vertex2.X, vertex2.Y, vertex0.X, vertex0.Y);	
+				draw_line(mVertices[i].mPixelColor, mVertices[i+1].mPixelColor,vertex0.X, vertex0.Y, vertex1.X, vertex1.Y,vertex0.Z, vertex1.Z);	
+				draw_line(mVertices[i+1].mPixelColor, mVertices[i+2].mPixelColor,vertex1.X, vertex1.Y, vertex2.X, vertex2.Y,vertex1.Z,vertex2.Z);	
+				draw_line(mVertices[i+2].mPixelColor, mVertices[i].mPixelColor,vertex2.X, vertex2.Y, vertex0.X, vertex0.Y,vertex2.Z,vertex0.Z);	
 					
 				vertex0 = screenMatrix.MultVertex(mVertices[i+3]);
 				vertex1 = screenMatrix.MultVertex(mVertices[i+4]);
@@ -522,6 +531,7 @@ MGLfloat TriangleArea(GLVertex p1, GLVertex p2, GLVertex p3){
 
 		return;
 	}
+	
 	// Draw the lines, wireframe quad for now
 	for(int i = 0; i < size-1; i++){
 						
@@ -531,17 +541,26 @@ MGLfloat TriangleArea(GLVertex p1, GLVertex p2, GLVertex p3){
 			divisor0 = -mVertices[i].Z;
 			divisor1 = -mVertices[i+1].Z;	
 			
-			if(divisor0 == 0)
-				divisor0 = 1;
 			
-			if(divisor1 == 0)
-				divisor1 = 1;
-			
+			if(divisor0 == 0 && divisor1 == 0){	
+				if(vertex0.Z == vertex1.Z || (vertex0.Z+vertex1.Z) == 1){
+					divisor0 = 1;
+					divisor1 = 1;
+				}
+				else{
+					divisor0 = vertex0.Z;
+					divisor1 = vertex1.Z;
+				
+				}
+				
+			}
+			//if(divisor1 == 0)
+			//	divisor1 = 1;
 			cout << "======Line " << i+1 << "=====\n";
-		    cout << "mVertices[" << i <<"] = ( " << mVertices[i].X << "," << mVertices[i].Y << ") -> (" << vertex0.X/divisor0 << ","  << vertex0.Y/divisor0 << ")\n";
-			cout << "mVertices[" << i+1 <<"] = ( " << mVertices[i+1].X << "," << mVertices[i+1].Y << ") -> (" << vertex0.X/divisor1 << ","  << vertex0.Y/divisor1 << ")\n";
-			
-			draw_line(mVertices[i].mPixelColor, mVertices[i+1].mPixelColor, vertex0.X/divisor0 , vertex0.Y/divisor0, vertex1.X/divisor1, vertex1.Y/divisor1);	
+		    cout << "mVertices[" << i   <<"] = ( " << mVertices[i].X   << "," << mVertices[i].Y    << "," << mVertices[i].Z  << ") -> (" << vertex0.X/divisor0 << ","  << vertex0.Y/divisor0 << "," <<vertex0.Z <<")\n";
+			cout << "mVertices[" << i+1 <<"] = ( " << mVertices[i+1].X << "," << mVertices[i+1].Y  << "," << mVertices[i+1].Z<< ") -> (" << vertex1.X/divisor1 << ","  << vertex1.Y/divisor1 << "," <<vertex1.Z  << ")\n";
+			cout << "divisor0 = " << divisor0 << " divisor1 = " << divisor1 << "\n"; 
+			draw_line(mVertices[i].mPixelColor, mVertices[i+1].mPixelColor, vertex0.X/divisor0 , vertex0.Y/divisor0, vertex1.X/divisor1, vertex1.Y/divisor1, vertex0.Z, vertex1.Z);	
 					
 			
 	}
@@ -551,20 +570,27 @@ MGLfloat TriangleArea(GLVertex p1, GLVertex p2, GLVertex p3){
 	vertex0 = screenMatrix.MultVertex(mVertices[size-1]);
 	vertex1 = screenMatrix.MultVertex(mVertices[0]);	
 	
-	divisor0 = -mVertices[size-1].Z;
-	divisor1 = -mVertices[0].Z;	
+		divisor0 = -mVertices[size-1].Z;
+		divisor1 = -mVertices[0].Z;	
 	
-	if(divisor0 == 0)
-		divisor0 = 1;
-	
-	if(divisor1 == 0)
-		divisor1 = 1;
+		if(divisor0 == 0 && divisor1 == 0){	
+				if(vertex0.Z == vertex1.Z || (vertex0.Z+vertex1.Z) == 1){
+					divisor0 = 1;
+					divisor1 = 1;
+				}
+				else{
+					divisor0 = vertex0.Z;
+					divisor1 = vertex1.Z;
+				
+				}
+				
+			}
 		
 	cout << "======Line " << size << "=====\n";
-	cout << "mVertices[" << size-1 <<"] = ( " << mVertices[size-1].X << "," << mVertices[size-1].Y << ") -> (" << vertex0.X/divisor0 << ","  << vertex0.Y/divisor0<< ")\n";
-	cout << "mVertices[" << 0 <<"] = ( " << mVertices[0].X << "," << mVertices[0].Y << ") -> (" << vertex0.X/divisor1 << ","  << vertex0.Y/divisor1 << ")\n";
-			
-	draw_line(mVertices[size-1].mPixelColor, mVertices[0].mPixelColor, vertex0.X/divisor0 , vertex0.Y/divisor0, vertex1.X/divisor1, vertex1.Y/divisor1);	
+	 cout << "mVertices[" << size-1   <<"] = ( " << mVertices[size-1].X   << "," << mVertices[size-1].Y    << "," << mVertices[size-1].Z  << ") -> (" << vertex0.X/divisor0 << ","  << vertex0.Y/divisor0 << "," <<vertex0.Z <<")\n";
+			cout << "mVertices[" << 0<<"] = ( " << mVertices[0].X << "," << mVertices[0].Y  << "," << mVertices[0].Z<< ") -> (" << vertex1.X/divisor1 << ","  << vertex1.Y/divisor1 << "," <<vertex1.Z  << ")\n";
+				
+	draw_line(mVertices[size-1].mPixelColor, mVertices[0].mPixelColor, vertex0.X/divisor0 , vertex0.Y/divisor0, vertex1.X/divisor1, vertex1.Y/divisor1, vertex0.Z, vertex1.Z);	
 	
 	for(int i = 0; i < size; i++){
 				mVertices.pop_back();			
@@ -640,13 +666,31 @@ void mglEnd()
 
 }
 
-void set_pixel(MGLpixel color, float x, float y)
+void set_pixel(MGLpixel color, float x, float y){
+	set_pixel(color, x, y, 0);	
+}
+void set_pixel(MGLpixel color, float x, float y, float depth)
 {
     //float col[] = { 1.0, 1.0, 1.0 };
     //set_pixel(x,y,col);
-    if((x < 0) || (x > WIDTH) || (y < 0) || (y > HEIGHT)) // not a vaild pixel, clip it, may need for rasterizer
-		return ;
     
+
+    // Clip all pixels that are not in the view port
+    if((x < 0) || (x > WIDTH) || (y < 0) || (y > HEIGHT)){ // not a vaild pixel, clip it, may need for rasterizer
+		//cout << "Clipping pixel outside of viewport\n";
+		return ;
+	}
+	
+	// the new pixel is deeper than the old pixel
+    // do not replace	
+	if(depth < mZBuffer[(WIDTH*int(y)) + int(x)]){
+		//cout << "Pixel " << (WIDTH*int(y)) + int(x) << " is ocluded\n";
+		return;
+		
+	}
+	
+	//cout << "setting pixel " << (WIDTH*int(y)) + int(x) << " to depth = "<< depth << "\n";
+    mZBuffer[(WIDTH*int(y)) + int(x)] = depth;
     mFrameBuffer[(WIDTH*int(y)) + int(x)] = color;
     
     //mFrameBuffer[(WIDTH*int(y)) + int(x)] = 10001000;
@@ -655,8 +699,14 @@ void set_pixel(MGLpixel color, float x, float y)
 
 float distancei(int x0, int y0, int x1, int y1){
 	return sqrt((x1-x0)*(x1-x0)+(y1-y0)*(y1-y0));
-	}
-void draw_line(MGLpixel pixelColor1,MGLpixel pixelColor2, int x0, int y0, int x1, int y1)
+}
+	
+	
+void draw_line(MGLpixel pixelColor1,MGLpixel pixelColor2, int x0, int y0, int x1, int y1){
+	draw_line(pixelColor1,pixelColor2, x0, y0, x1, y1, 0, 0);
+}
+void draw_line(MGLpixel pixelColor1,MGLpixel pixelColor2, int x0, int y0, int x1, int y1, float depth1, float depth2)
+
 {
 	//cout << "X0 = " << x0 << " Y0 = " << y0 << "\n";
 	//cout << "X1 = " << x1 << " Y0 = " << y1 << "\n";
@@ -675,11 +725,17 @@ void draw_line(MGLpixel pixelColor1,MGLpixel pixelColor2, int x0, int y0, int x1
     MGLbyte green2 = MGL_GET_GREEN(pixelColor2);
     MGLbyte blue2 = MGL_GET_BLUE(pixelColor2);
     
-    MGLpixel color = 0;
+    MGLpixel color = 000000;
+    float depth = 0;
+    if(depth1 == depth2){
+		cout << "Not going to do depth interpolation\n";
+		cout << "depth1 = " << depth1 << " depth2 = " << depth2 << "\n";
+		depth = depth1;
+	}
     
     float distance = distancei(x0, y0, x1, y1);
     if(dx == 0){
-        cout << "DX = 0 \n";
+       // cout << "DX = 0 \n";
 ;		if(y0 < y1){
 			for(int y = y0; y < y1; ++y){
 				alpha = (distancei(x0, y0, x1, y)/distance);
@@ -687,7 +743,16 @@ void draw_line(MGLpixel pixelColor1,MGLpixel pixelColor2, int x0, int y0, int x1
 				color = MGL_SET_BLUE(color, MGLpixel((alpha*blue2)+(beta*blue1)));
 				color = MGL_SET_RED(color, MGLpixel((alpha*red2)+(beta*red1)));
 				color = MGL_SET_GREEN(color, MGLpixel((alpha*green2)+(beta*green1)));
-				set_pixel(color, x0, y);
+				
+				if(depth1 == depth2)
+				{
+					depth = depth1;
+						
+				}
+				else
+					depth = alpha*depth2 + beta*depth1;
+					
+				set_pixel(color, x0, y, depth);
 				}
 		}else if(y0 > y1){
 			
@@ -698,7 +763,14 @@ void draw_line(MGLpixel pixelColor1,MGLpixel pixelColor2, int x0, int y0, int x1
 				color = MGL_SET_BLUE(color, MGLpixel((alpha*blue2)+(beta*blue1)));
 				color = MGL_SET_RED(color, MGLpixel((alpha*red2)+(beta*red1)));
 				color = MGL_SET_GREEN(color, MGLpixel((alpha*green2)+(beta*green1)));
-				set_pixel(color, x0, y);
+				if(depth1 == depth2)
+				{
+					depth = depth1;
+				}
+				else
+					depth = alpha*depth2 + beta*depth1;
+					
+				set_pixel(color, x0, y, depth);
 				
 				}
 		}
@@ -712,7 +784,7 @@ void draw_line(MGLpixel pixelColor1,MGLpixel pixelColor2, int x0, int y0, int x1
     float b = y0 - m*x0;
     //cout << "m = " << m << "\n";
     if(x0 < x1){ 
-		cout << "x0 < x1 \n";
+		//cout << "x0 < x1 \n";
         if((-1 <= m) && (m <= 1)){
             for(int x = x0; x < x1; ++x){
                 //cout << "-1 <= m <= 1 \n";
@@ -724,25 +796,33 @@ void draw_line(MGLpixel pixelColor1,MGLpixel pixelColor2, int x0, int y0, int x1
 				color = MGL_SET_BLUE(color, MGLpixel((alpha*blue2)+(beta*blue1)));
 				color = MGL_SET_RED(color, MGLpixel((alpha*red2)+(beta*red1)));
 				color = MGL_SET_GREEN(color, MGLpixel((alpha*green2)+(beta*green1)));
-                set_pixel(color, x, m*x + b);
+				if(depth1 == depth2)
+					depth = depth1;
+				else
+					depth = alpha*depth2 + beta*depth1;
+                set_pixel(color, x, m*x + b, depth);
                 }
         }else if((m >= 1) || (m <= -1)){ // y = m*x+b -> (y-b)/m = x
             //cout << "abs Slope is greater than 1\n";
             if(y0 > y1){
 				
-				cout << "y0 > y1 \n";
+				//cout << "y0 > y1 \n";
                 for(int y = y0; y > y1; --y){
                 
                 
 					if(m <= -1){
-						cout << " m <= -1\n";
-						 alpha = (distancei(x0, y0, ((y-b)/m),y)/distance);
-						beta = 1 - alpha;			
+							//cout << " m <= -1\n";
+							alpha = (distancei(x0, y0, ((y-b)/m),y)/distance);
+							beta = 1 - alpha;			
 						
-					color = MGL_SET_BLUE(color, MGLpixel((alpha*blue2)+(beta*blue1)));
-				color = MGL_SET_RED(color, MGLpixel((alpha*red2)+(beta*red1)));
-				color = MGL_SET_GREEN(color, MGLpixel((alpha*green2)+(beta*green1)));
-							set_pixel(color, ((y-b)/m), y);
+							color = MGL_SET_BLUE(color, MGLpixel((alpha*blue2)+(beta*blue1)));
+							color = MGL_SET_RED(color, MGLpixel((alpha*red2)+(beta*red1)));
+							color = MGL_SET_GREEN(color, MGLpixel((alpha*green2)+(beta*green1)));
+							if(depth1 == depth2)
+								depth = depth1;
+							else
+								depth = alpha*depth2 + beta*depth1;
+							set_pixel(color, ((y-b)/m), y, depth);
 					}
 						//cout << "y = " << y << " x = " << ((y-b)/m) << "\n";
 
@@ -755,10 +835,14 @@ void draw_line(MGLpixel pixelColor1,MGLpixel pixelColor2, int x0, int y0, int x1
 						alpha = (distancei(x0, y0, ((y-b)/m),y)/distance);
 						beta = 1 - alpha;			
 						color = MGL_SET_BLUE(color, MGLpixel((alpha*blue2)+(beta*blue1)));
-				color = MGL_SET_RED(color, MGLpixel((alpha*red2)+(beta*red1)));
-				color = MGL_SET_GREEN(color, MGLpixel((alpha*green2)+(beta*green1)));
+						color = MGL_SET_RED(color, MGLpixel((alpha*red2)+(beta*red1)));
+						color = MGL_SET_GREEN(color, MGLpixel((alpha*green2)+(beta*green1)));
+						if(depth1 == depth2)
+							depth = depth1;
+						else
+							depth = alpha*depth2 + beta*depth1;
 						//cout << "y = " << y << " x = " << ((y-b)/m) << "\n";
-						set_pixel(color, ((y-b)/m), y);
+						set_pixel(color, ((y-b)/m), y, depth);
 						
 						}
                 }
@@ -769,7 +853,7 @@ void draw_line(MGLpixel pixelColor1,MGLpixel pixelColor2, int x0, int y0, int x1
         }
     } else if(x1 < x0){
 		
-		cout << "x1 < x0 \n";
+		//cout << "x1 < x0 \n";
         if((-1 <= m ) && (m <= 1)){
             for(int x = x0; x > x1; --x){
 				
@@ -778,13 +862,16 @@ void draw_line(MGLpixel pixelColor1,MGLpixel pixelColor2, int x0, int y0, int x1
 				color = MGL_SET_BLUE(color, MGLpixel((alpha*blue2)+(beta*blue1)));
 				color = MGL_SET_RED(color, MGLpixel((alpha*red2)+(beta*red1)));
 				color = MGL_SET_GREEN(color, MGLpixel((alpha*green2)+(beta*green1)));
-                set_pixel(color, x, m*x + b);
+				if(depth1 == depth2)
+					depth = depth1;
+				else
+					depth = alpha*depth2 + beta*depth1;
+                set_pixel(color, x, m*x + b, depth);
                 
                 }
         }else if((m >= 1) || (m <= -1)){ 
             //cout << "where am i 1\n";
             if(y0 < y1){
-               // cout << "where am i 2\n";
                 for(int y = y0; y < y1; ++y){
 				
 				alpha = (distancei(x0, y0, ((y-b)/m), y)/distance);
@@ -792,8 +879,13 @@ void draw_line(MGLpixel pixelColor1,MGLpixel pixelColor2, int x0, int y0, int x1
 				color = MGL_SET_BLUE(color, MGLpixel((alpha*blue2)+(beta*blue1)));
 				color = MGL_SET_RED(color, MGLpixel((alpha*red2)+(beta*red1)));
 				color = MGL_SET_GREEN(color, MGLpixel((alpha*green2)+(beta*green1)));
+				if(depth1 == depth2)
+					depth = depth1;
+				else
+					depth = alpha*depth2 + beta*depth1;
                 //cout << "y = " << y << " x = " << ((y-b)/m) << "\n";
-					set_pixel(color, ((y-b)/m), y);
+                //cout << "where am i " << y << "|" << y1 << "\n";
+					set_pixel(color, ((y-b)/m), y, depth);
              }
                 
             }else{
@@ -804,14 +896,18 @@ void draw_line(MGLpixel pixelColor1,MGLpixel pixelColor2, int x0, int y0, int x1
 				color = MGL_SET_BLUE(color, MGLpixel((alpha*blue2)+(beta*blue1)));
 				color = MGL_SET_RED(color, MGLpixel((alpha*red2)+(beta*red1)));
 				color = MGL_SET_GREEN(color, MGLpixel((alpha*green2)+(beta*green1)));
-					set_pixel(color, ((y-b)/m), y);
+				if(depth1 == depth2)
+					depth = depth1;
+				else
+					depth = alpha*depth2 + beta*depth1;
+					set_pixel(color, ((y-b)/m), y, depth);
 					
 					}
            }   
         }
     }
     
-    cout << "alpha -> " << alpha << " beta -> " << beta << "\n";
+    //cout << "alpha -> " << alpha << " beta -> " << beta << "\n";
     return;
 }
 
@@ -903,7 +999,7 @@ void mglPushMatrix()
 			break;
 		}
 	}
-	cout << "================\n";
+	cout << "=========new matrix=======\n";
 	mCurrentMatrix.seeMatrix();
 	cout << "End pushing a matrix\n";
 	
