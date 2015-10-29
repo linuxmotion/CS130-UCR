@@ -16,7 +16,7 @@ main.o: main.cpp minigl.h
 	$(CXX) $(CXXFLAGS) $< -o $@
 
 long: 
-	g++ -O2 main.cpp minigl.cpp $(LDFLAGS) -o minigl
+	g++ -O2 main.cpp minigl.cpp $(LDFLAGS) -o $(EXEC)
 
 clean:
 	$(RM) *~ *.bak *.o $(EXEC)
