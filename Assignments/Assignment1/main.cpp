@@ -58,7 +58,7 @@ void Draw_Pixels()
     MGL_SET_BLUE(white,255);
     MGLpixel black=0;
     MGLpixel pixel_data[WIDTH*HEIGHT];
-    for(int i=0;i<WIDTH*HEIGHT;i++) pixel_data[i]=black + i;
+    for(int i=0;i<WIDTH*HEIGHT;i++) pixel_data[i]=black;
 
     mglReadPixels(WIDTH,HEIGHT,pixel_data);
 
