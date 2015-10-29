@@ -256,8 +256,8 @@ public:
 
 
 
-void draw_line(MGLbyte color, int x0, int y0, int x1, int y1);
-void set_pixel(MGLbyte color, float x, float y);
+void draw_line(MGLpixel color1,MGLpixel color2, int x0, int y0, int x1, int y1);
+void set_pixel(MGLpixel color, float x, float y);
 	 
 
 
@@ -447,9 +447,9 @@ MGLfloat TriangleArea(GLVertex p1, GLVertex p2, GLVertex p3){
 				cout << "mVertices[" << i+1 <<"] = ( " << mVertices[i+1].X << "," << mVertices[i+1].Y << ") -> (" << vertex1.X << ","  << vertex1.Y << ")\n";
 				cout << "mVertices[" << i+2 <<"] = ( " << mVertices[i+2].X << "," << mVertices[i+2].Y << ") -> (" << vertex2.X << ","  << vertex2.Y << ")\n";
 					
-				draw_line(0,vertex0.X, vertex0.Y, vertex1.X, vertex1.Y);	
-				draw_line(0,vertex1.X, vertex1.Y, vertex2.X, vertex2.Y);	
-				draw_line(0,vertex2.X, vertex2.Y, vertex0.X, vertex0.Y);	
+				draw_line(mVertices[i].mPixelColor, mVertices[i+1].mPixelColor,vertex0.X, vertex0.Y, vertex1.X, vertex1.Y);	
+				draw_line(mVertices[i+1].mPixelColor, mVertices[i+2].mPixelColor,vertex1.X, vertex1.Y, vertex2.X, vertex2.Y);	
+				draw_line(mVertices[i+2].mPixelColor, mVertices[i].mPixelColor,vertex2.X, vertex2.Y, vertex0.X, vertex0.Y);	
 					
 				vertex0 = screenMatrix.MultVertex(mVertices[i+3]);
 				vertex1 = screenMatrix.MultVertex(mVertices[i+4]);
@@ -495,9 +495,9 @@ MGLfloat TriangleArea(GLVertex p1, GLVertex p2, GLVertex p3){
 				
 					
 					// draw first three
-				draw_line(0,vertex0.X/divisor0, vertex0.Y/divisor0, vertex1.X/divisor1, vertex1.Y/divisor1);	
-				draw_line(0,vertex1.X/divisor1, vertex1.Y/divisor1, vertex2.X/divisor2, vertex2.Y/divisor2);	
-				draw_line(0,vertex2.X/divisor2, vertex2.Y/divisor2, vertex0.X/divisor0, vertex0.Y/divisor0);	
+				draw_line(mVertices[0].mPixelColor, mVertices[1].mPixelColor, vertex0.X/divisor0, vertex0.Y/divisor0, vertex1.X/divisor1, vertex1.Y/divisor1);	
+				draw_line(mVertices[1].mPixelColor, mVertices[2].mPixelColor, vertex1.X/divisor1, vertex1.Y/divisor1, vertex2.X/divisor2, vertex2.Y/divisor2);	
+				draw_line(mVertices[2].mPixelColor, mVertices[0].mPixelColor, vertex2.X/divisor2, vertex2.Y/divisor2, vertex0.X/divisor0, vertex0.Y/divisor0);	
 					
 					
 				vertex0 = screenMatrix.MultVertex(mVertices[2]);
@@ -508,9 +508,9 @@ MGLfloat TriangleArea(GLVertex p1, GLVertex p2, GLVertex p3){
 					float divisor1 = -mVertices[3].Z;	
 					float divisor2 = -mVertices[0].Z;	
 				// draw second three
-				draw_line(0,vertex0.X/divisor0, vertex0.Y/divisor0, vertex1.X/divisor1, vertex1.Y/divisor1);	
-				draw_line(0,vertex1.X/divisor1, vertex1.Y/divisor1, vertex2.X/divisor2, vertex2.Y/divisor2);	
-				draw_line(0,vertex2.X/divisor2, vertex2.Y/divisor2, vertex0.X/divisor0, vertex0.Y/divisor0);		
+				draw_line(mVertices[2].mPixelColor, mVertices[3].mPixelColor, vertex0.X/divisor0, vertex0.Y/divisor0, vertex1.X/divisor1, vertex1.Y/divisor1);	
+				draw_line(mVertices[3].mPixelColor, mVertices[4].mPixelColor, vertex1.X/divisor1, vertex1.Y/divisor1, vertex2.X/divisor2, vertex2.Y/divisor2);	
+				draw_line(mVertices[4].mPixelColor, mVertices[2].mPixelColor, vertex2.X/divisor2, vertex2.Y/divisor2, vertex0.X/divisor0, vertex0.Y/divisor0);		
 		
 		for(int i = 0; i < size; i++){
 				mVertices.pop_back();
@@ -541,7 +541,7 @@ MGLfloat TriangleArea(GLVertex p1, GLVertex p2, GLVertex p3){
 		    cout << "mVertices[" << i <<"] = ( " << mVertices[i].X << "," << mVertices[i].Y << ") -> (" << vertex0.X/divisor0 << ","  << vertex0.Y/divisor0 << ")\n";
 			cout << "mVertices[" << i+1 <<"] = ( " << mVertices[i+1].X << "," << mVertices[i+1].Y << ") -> (" << vertex0.X/divisor1 << ","  << vertex0.Y/divisor1 << ")\n";
 			
-			draw_line(0, vertex0.X/divisor0 , vertex0.Y/divisor0, vertex1.X/divisor1, vertex1.Y/divisor1);	
+			draw_line(mVertices[i].mPixelColor, mVertices[i+1].mPixelColor, vertex0.X/divisor0 , vertex0.Y/divisor0, vertex1.X/divisor1, vertex1.Y/divisor1);	
 					
 			
 	}
@@ -564,7 +564,7 @@ MGLfloat TriangleArea(GLVertex p1, GLVertex p2, GLVertex p3){
 	cout << "mVertices[" << size-1 <<"] = ( " << mVertices[size-1].X << "," << mVertices[size-1].Y << ") -> (" << vertex0.X/divisor0 << ","  << vertex0.Y/divisor0<< ")\n";
 	cout << "mVertices[" << 0 <<"] = ( " << mVertices[0].X << "," << mVertices[0].Y << ") -> (" << vertex0.X/divisor1 << ","  << vertex0.Y/divisor1 << ")\n";
 			
-	draw_line(0, vertex0.X/divisor0 , vertex0.Y/divisor0, vertex1.X/divisor1, vertex1.Y/divisor1);	
+	draw_line(mVertices[size-1].mPixelColor, mVertices[0].mPixelColor, vertex0.X/divisor0 , vertex0.Y/divisor0, vertex1.X/divisor1, vertex1.Y/divisor1);	
 	
 	for(int i = 0; i < size; i++){
 				mVertices.pop_back();			
@@ -640,20 +640,23 @@ void mglEnd()
 
 }
 
-void set_pixel(MGLbyte color, float x, float y)
+void set_pixel(MGLpixel color, float x, float y)
 {
     //float col[] = { 1.0, 1.0, 1.0 };
     //set_pixel(x,y,col);
     if((x < 0) || (x > WIDTH) || (y < 0) || (y > HEIGHT)) // not a vaild pixel, clip it, may need for rasterizer
 		return ;
     
-    mFrameBuffer[(WIDTH*int(y)) + int(x)] = mColor;
+    mFrameBuffer[(WIDTH*int(y)) + int(x)] = color;
     
     //mFrameBuffer[(WIDTH*int(y)) + int(x)] = 10001000;
 }
 
 
-void draw_line(MGLbyte color, int x0, int y0, int x1, int y1)
+float distancei(int x0, int y0, int x1, int y1){
+	return sqrt((x1-x0)*(x1-x0)+(y1-y0)*(y1-y0));
+	}
+void draw_line(MGLpixel pixelColor1,MGLpixel pixelColor2, int x0, int y0, int x1, int y1)
 {
 	//cout << "X0 = " << x0 << " Y0 = " << y0 << "\n";
 	//cout << "X1 = " << x1 << " Y0 = " << y1 << "\n";
@@ -661,43 +664,103 @@ void draw_line(MGLbyte color, int x0, int y0, int x1, int y1)
     float dx = x1 - x0;
     float dy = y1 - y0;
     
-    if(dx == 0){
-        
-            if(y0 < y1){
-                for(int y = y0; y < y1; ++y)
-                    set_pixel(color, x0, y);
-            }else if(y0 > y1){
-                
-                for(int y = y0; y > y1; --y)
-                    set_pixel(color, x0, y);
-            }
-            return;
+    float alpha = 0;
+    float beta  = 0;
     
+    MGLbyte red1 = MGL_GET_RED(pixelColor1);
+    MGLbyte green1 = MGL_GET_GREEN(pixelColor1);
+    MGLbyte blue1 = MGL_GET_BLUE(pixelColor1);
+    
+    MGLbyte red2 = MGL_GET_RED(pixelColor2);
+    MGLbyte green2 = MGL_GET_GREEN(pixelColor2);
+    MGLbyte blue2 = MGL_GET_BLUE(pixelColor2);
+    
+    MGLpixel color = 0;
+    
+    float distance = distancei(x0, y0, x1, y1);
+    if(dx == 0){
+        cout << "DX = 0 \n";
+;		if(y0 < y1){
+			for(int y = y0; y < y1; ++y){
+				alpha = (distancei(x0, y0, x1, y)/distance);
+				beta = 1 - alpha;			
+				color = MGL_SET_BLUE(color, MGLpixel((alpha*blue2)+(beta*blue1)));
+				color = MGL_SET_RED(color, MGLpixel((alpha*red2)+(beta*red1)));
+				color = MGL_SET_GREEN(color, MGLpixel((alpha*green2)+(beta*green1)));
+				set_pixel(color, x0, y);
+				}
+		}else if(y0 > y1){
+			
+			for(int y = y0; y > y1; --y){
+				
+				alpha = (distancei(x0, y0, x1, y)/distance);
+				beta = 1 - alpha;			
+				color = MGL_SET_BLUE(color, MGLpixel((alpha*blue2)+(beta*blue1)));
+				color = MGL_SET_RED(color, MGLpixel((alpha*red2)+(beta*red1)));
+				color = MGL_SET_GREEN(color, MGLpixel((alpha*green2)+(beta*green1)));
+				set_pixel(color, x0, y);
+				
+				}
+		}
+		return;
+
     }
     
+   
 
     float m = dy/dx;
     float b = y0 - m*x0;
     //cout << "m = " << m << "\n";
-    if(x1 > x0){ 
+    if(x0 < x1){ 
+		cout << "x0 < x1 \n";
         if((-1 <= m) && (m <= 1)){
-            for(int x = x0; x < x1; ++x)
+            for(int x = x0; x < x1; ++x){
+                //cout << "-1 <= m <= 1 \n";
+                alpha = (distancei(x0, y0, x, m*x + b)/distance);
+				beta = 1 - alpha;	
+				
+				//cout << "alpha -> " << alpha << " beta -> " << beta << "\n";		
+				
+				color = MGL_SET_BLUE(color, MGLpixel((alpha*blue2)+(beta*blue1)));
+				color = MGL_SET_RED(color, MGLpixel((alpha*red2)+(beta*red1)));
+				color = MGL_SET_GREEN(color, MGLpixel((alpha*green2)+(beta*green1)));
                 set_pixel(color, x, m*x + b);
+                }
         }else if((m >= 1) || (m <= -1)){ // y = m*x+b -> (y-b)/m = x
             //cout << "abs Slope is greater than 1\n";
             if(y0 > y1){
+				
+				cout << "y0 > y1 \n";
                 for(int y = y0; y > y1; --y){
-                if(m <= -1)
-                    //cout << "y = " << y << " x = " << ((y-b)/m) << "\n";
-                set_pixel(color, ((y-b)/m), y);
+                
+                
+					if(m <= -1){
+						cout << " m <= -1\n";
+						 alpha = (distancei(x0, y0, ((y-b)/m),y)/distance);
+						beta = 1 - alpha;			
+						
+					color = MGL_SET_BLUE(color, MGLpixel((alpha*blue2)+(beta*blue1)));
+				color = MGL_SET_RED(color, MGLpixel((alpha*red2)+(beta*red1)));
+				color = MGL_SET_GREEN(color, MGLpixel((alpha*green2)+(beta*green1)));
+							set_pixel(color, ((y-b)/m), y);
+					}
+						//cout << "y = " << y << " x = " << ((y-b)/m) << "\n";
+
                 }
                 
             }else{
                 
                 for(int y = y0; y < y1; ++y){
-                if(m <= -1)
-                    //cout << "y = " << y << " x = " << ((y-b)/m) << "\n";
-                set_pixel(color, ((y-b)/m), y);
+					if(m <= -1){
+						alpha = (distancei(x0, y0, ((y-b)/m),y)/distance);
+						beta = 1 - alpha;			
+						color = MGL_SET_BLUE(color, MGLpixel((alpha*blue2)+(beta*blue1)));
+				color = MGL_SET_RED(color, MGLpixel((alpha*red2)+(beta*red1)));
+				color = MGL_SET_GREEN(color, MGLpixel((alpha*green2)+(beta*green1)));
+						//cout << "y = " << y << " x = " << ((y-b)/m) << "\n";
+						set_pixel(color, ((y-b)/m), y);
+						
+						}
                 }
                 
             }
@@ -705,28 +768,50 @@ void draw_line(MGLbyte color, int x0, int y0, int x1, int y1)
             
         }
     } else if(x1 < x0){
+		
+		cout << "x1 < x0 \n";
         if((-1 <= m ) && (m <= 1)){
-            for(int x = x0; x > x1; --x)
+            for(int x = x0; x > x1; --x){
+				
+				alpha = (distancei(x0, y0, x, m*x + b)/distance);
+				beta = 1 - alpha;			
+				color = MGL_SET_BLUE(color, MGLpixel((alpha*blue2)+(beta*blue1)));
+				color = MGL_SET_RED(color, MGLpixel((alpha*red2)+(beta*red1)));
+				color = MGL_SET_GREEN(color, MGLpixel((alpha*green2)+(beta*green1)));
                 set_pixel(color, x, m*x + b);
+                
+                }
         }else if((m >= 1) || (m <= -1)){ 
             //cout << "where am i 1\n";
             if(y0 < y1){
                // cout << "where am i 2\n";
                 for(int y = y0; y < y1; ++y){
+				
+				alpha = (distancei(x0, y0, ((y-b)/m), y)/distance);
+				beta = 1 - alpha;			
+				color = MGL_SET_BLUE(color, MGLpixel((alpha*blue2)+(beta*blue1)));
+				color = MGL_SET_RED(color, MGLpixel((alpha*red2)+(beta*red1)));
+				color = MGL_SET_GREEN(color, MGLpixel((alpha*green2)+(beta*green1)));
                 //cout << "y = " << y << " x = " << ((y-b)/m) << "\n";
-                set_pixel(color, ((y-b)/m), y);
-                }
+					set_pixel(color, ((y-b)/m), y);
+             }
                 
             }else{
                 // y = m*x+b -> (y-b)/m = x
-                for(int y = y0; y > y1; --y)
-                set_pixel(color, ((y-b)/m), y);
-                }
-            
-            
-            
+                for(int y = y0; y > y1; --y){
+					alpha = (distancei(x0, y0, ((y-b)/m), y)/distance);
+				beta = 1 - alpha;			
+				color = MGL_SET_BLUE(color, MGLpixel((alpha*blue2)+(beta*blue1)));
+				color = MGL_SET_RED(color, MGLpixel((alpha*red2)+(beta*red1)));
+				color = MGL_SET_GREEN(color, MGLpixel((alpha*green2)+(beta*green1)));
+					set_pixel(color, ((y-b)/m), y);
+					
+					}
+           }   
         }
     }
+    
+    cout << "alpha -> " << alpha << " beta -> " << beta << "\n";
     return;
 }
 
@@ -758,6 +843,7 @@ void mglVertex3(MGLfloat x,
 	vertex.X = x;
 	vertex.Y = y;
 	vertex.Z = z;
+	vertex.mPixelColor = mColor;
 	//cout << vertex.X << " " << vertex.Y  << " " <<  vertex.Z << endl;
 	mVertices.push_back(vertex);
 		
