@@ -25,6 +25,7 @@ struct GLVertex{
 	MGLfloat X;
 	MGLfloat Y;
 	MGLfloat Z;
+	MGLfloat W;
 	MGLpixel mPixelColor; 
 } ;
 
@@ -205,11 +206,12 @@ public:
 		for(int i = 0; i < 4; i++){			
 			// multiple against each column of new matrix	
 			// cout << mMatrix[i] << " " << mMatrix[i+4]<< " " <<  mMatrix[i+8] << " " << mMatrix[i+12] << "\n";
-			temp[i]= mMatrix[i]*vertex.X + mMatrix[i+4]*vertex.Y + mMatrix[i+8]*vertex.Z + mMatrix[i+12]*1;				
+			temp[i]= mMatrix[i]*vertex.X + mMatrix[i+4]*vertex.Y + mMatrix[i+8]*vertex.Z + mMatrix[i+12]*vertex.W;				
 		}	
 		newVertex.X = temp[0];
 		newVertex.Y = temp[1];
 		newVertex.Z = temp[2];
+		newVertex.W = temp[3];
 		//cout << "Output vertex\n";
 		//cout << newVertex.X << " " << newVertex.Y  << " " << newVertex.Z << "\n";
 		
@@ -342,7 +344,7 @@ void mglBegin(MGLpoly_mode mode)
 	
 	
 	for(int i = 0; i < WIDTH*HEIGHT; i++){
-			mZBuffer[i] = 0;
+		mZBuffer[i] = 0;
 	}
 	
 	
@@ -939,6 +941,7 @@ void mglVertex3(MGLfloat x,
 	vertex.X = x;
 	vertex.Y = y;
 	vertex.Z = z;
+	vertex.w = 1;
 	vertex.mPixelColor = mColor;
 	//cout << vertex.X << " " << vertex.Y  << " " <<  vertex.Z << endl;
 	mVertices.push_back(vertex);
