@@ -13,6 +13,7 @@
 #include "minigl.h"
 
 using namespace std;
+#define PI 3.14159265
 
 struct ColorRGB{
 	MGLbyte r;
@@ -88,8 +89,8 @@ public:
 		
 	}
 	
-#define PI 3.14159265
-	#include <cmath>
+
+
 	void RotateMatrix(MGLfloat angle, MGLfloat X, MGLfloat Y,MGLfloat Z ){
 		
 		
@@ -260,8 +261,8 @@ public:
 
 void draw_line(MGLpixel color1,MGLpixel color2, int x0, int y0, int x1, int y1);
 void draw_line(MGLpixel color1,MGLpixel color2, int x0, int y0, int x1, int y1, float depth1, float depth2);
-void set_pixel(MGLpixel color, float x, float y);
-void set_pixel(MGLpixel color, float x, float y, float depth);
+void set_pixel(MGLpixel color, int x, int y);
+void set_pixel(MGLpixel color, int x, int y, float depth);
 	 
 
 
@@ -370,6 +371,58 @@ MGLfloat TriangleArea(GLVertex p1, GLVertex p2, GLVertex p3){
 
 }
 
+void BerrycentricRasterization(GLVertex vertex0,GLVertex vertex1,GLVertex vertex2){
+	
+	MGLfloat totalArea = TriangleArea(vertex0, vertex1, vertex2);
+	GLVertex point;
+	
+	MGLfloat alpha = 0;
+	MGLfloat beta = 0;
+	MGLfloat gamma = 0;
+	
+	MGLfloat minY  = min(vertex0.Y, min(vertex1.Y, vertex2.Y));
+	MGLfloat minX  = min(vertex0.X, min(vertex1.X, vertex2.X));
+	MGLfloat maxX  = max(vertex0.X, max(vertex1.X, vertex2.X));
+	MGLfloat maxY  = max(vertex0.Y, max(vertex1.Y, vertex2.Y));
+	//cout << minY << "|" << minX << "|" << maxY << "|"<< maxX << "\n";
+	
+	for(int i = minX; i <= maxX; i++){ // loop from [min x, max x]
+				point.X = i;
+				for(int j = minY; j < maxY; j++){ // loop from [min y, max y]
+					
+					
+					point.Y = j;
+					
+					alpha = (TriangleArea(point, vertex1,vertex2)/totalArea);
+					beta = (TriangleArea(point, vertex2,vertex0)/totalArea);
+					
+					/*
+					 * alpha = ((vertex1.Y - vertex2.Y)*i + (vertex1.X - vertex2.X)*j + (vertex2.X*vertex1.Y) + (vertex1.X*vertex2.Y))/
+						((vertex1.Y - vertex2.Y)*vertex0.X + (vertex1.X - vertex2.X)*vertex0.Y + (vertex2.X*vertex1.Y) + (vertex1.X*vertex2.Y));
+					beta = ((vertex2.Y - vertex0.Y)*i + (vertex2.X - vertex0.X)*j + (vertex2.X*vertex0.Y) + (vertex0.X*vertex2.Y))/
+						((vertex2.Y - vertex0.Y)*vertex1.X + (vertex2.X - vertex0.X)*vertex1.Y + (vertex2.X*vertex0.Y) + (vertex0.X*vertex2.Y));;
+					*/
+					
+					gamma = 1 - alpha - gamma;
+					
+					MGLpixel color = 0; 
+					MGL_SET_RED(color,MGLbyte(alpha*mColorRGB.r) );
+					MGL_SET_GREEN(color,MGLbyte(alpha*mColorRGB.g) );
+					MGL_SET_BLUE(color,MGLbyte(alpha*mColorRGB.b) );
+	
+					cout << alpha << "|" << beta << "|" << gamma << "\n";
+					
+					if((alpha < 1) && (beta  < 1) && (gamma < 1) && (alpha >= 0) && (beta  >= 0 ) && (gamma >= 0)){
+						cout << "setting pixel " << i << " " << j << " to color" << color << "\n";
+						set_pixel(color, float(i), float(j));
+					}
+				}
+					
+			}
+	
+	return;
+	
+	}
 /**
  * Stop specifying the vertices for a group of primitives.
  */ 
@@ -388,85 +441,44 @@ MGLfloat TriangleArea(GLVertex p1, GLVertex p2, GLVertex p3){
 		GLVertex vertex0 = screenMatrix.MultVertex(mVertices[0]);
 		GLVertex vertex1 = screenMatrix.MultVertex(mVertices[1]);
 		GLVertex vertex2 = screenMatrix.MultVertex(mVertices[2]);
-		
-		MGLfloat minY  = min(vertex0.Y, min(vertex1.Y, vertex2.Y));
-		MGLfloat minX  = min(vertex0.X, min(vertex1.X, vertex2.X));
-		MGLfloat maxX  = max(vertex0.X, max(vertex1.X, vertex2.X));
-		MGLfloat maxY  = max(vertex0.Y, max(vertex1.Y, vertex2.Y));
-		//cout << minY << "|" << minX << "|" << maxY << "|"<< maxX << "\n";
-		
-		MGLfloat alpha = 0;
-		MGLfloat beta = 0;
-		MGLfloat gamma = 0;
-		
-		MGLfloat totalArea = TriangleArea(vertex0, vertex1, vertex2);
-		GLVertex point;
-		
-		if(!wireframe){
-		//Rasterize triangles
-		for(int z = 0; z < (size)-1; z = (z+3)){ // for every three vertices
-		
-			for(int i = minX; i <= maxX; i++){ // loop from [min x, max x]
-				point.X = i;
-				for(int j = minY; j < maxY; j++){ // loop from [min y, max y]
-					
-					
-					//point.Y = j;
-					/*
-					 * alpha = (TriangleArea(point, vertex1,vertex2)/totalArea);
-					beta = (TriangleArea(point, vertex2,vertex0)/totalArea);
-					*/
-					alpha = ((vertex1.Y - vertex2.Y)*i + (vertex1.X - vertex2.X)*j + (vertex2.X*vertex1.Y) + (vertex1.X*vertex2.Y))/
-						((vertex1.Y - vertex2.Y)*vertex0.X + (vertex1.X - vertex2.X)*vertex0.Y + (vertex2.X*vertex1.Y) + (vertex1.X*vertex2.Y));
-					beta = ((vertex2.Y - vertex0.Y)*i + (vertex2.X - vertex0.X)*j + (vertex2.X*vertex0.Y) + (vertex0.X*vertex2.Y))/
-						((vertex2.Y - vertex0.Y)*vertex1.X + (vertex2.X - vertex0.X)*vertex1.Y + (vertex2.X*vertex0.Y) + (vertex0.X*vertex2.Y));;
-					
-					
-					gamma = 1 - alpha - gamma;
-					
-					MGLpixel color =0 ; 
-					MGL_SET_RED(color,MGLbyte(alpha*mColorRGB.r) );
-					MGL_SET_GREEN(color,MGLbyte(alpha*mColorRGB.g) );
-					MGL_SET_BLUE(color,MGLbyte(alpha*mColorRGB.b) );
-	
-					cout << alpha << "|" << beta << "|" << gamma << "\n";
-					
-					if((alpha < 1) && (beta  < 1) && (gamma < 1) && (alpha >= 0) && (beta  >= 0 ) && (gamma >= 0)){
-						cout << "setting pixel " << i << " " << j << " to color" << color << "\n";
-						set_pixel(color, float(i), float(j));
-					}
-				}
-					
-			}
-			vertex0 = screenMatrix.MultVertex(mVertices[z+3]);
-			vertex1 = screenMatrix.MultVertex(mVertices[z+4]);
-			vertex2 = screenMatrix.MultVertex(mVertices[z+5]);
 			
-		}
 		
-		for(int i = 0; i < size; i++){
-				mVertices.pop_back();
+		
+		if(wireframe){
 			
-		}
-		return;
-	}
-		
-		// Draw the lines, wireframe triangle for now
-		for(int i = 0; i < (size)-1; i = (i+3)){
+				// Draw the lines, wireframe triangle for now
+			for(int i = 0; i < (size)-1; i = (i+3)){
 				
 				cout << "mVertices[" << i   <<"] = ( " << mVertices[i].X   << "," << mVertices[i].Y   << "," << mVertices[i].Z   << ") -> (" << vertex0.X << ","  << vertex0.Y << ","  << vertex0.Z << ")\n";
 				cout << "mVertices[" << i+1 <<"] = ( " << mVertices[i+1].X << "," << mVertices[i+1].Y << "," << mVertices[i+1].Z << ") -> (" << vertex1.X << ","  << vertex1.Y << ","  << vertex1.Z << ")\n";
 				cout << "mVertices[" << i+2 <<"] = ( " << mVertices[i+2].X << "," << mVertices[i+2].Y << "," << mVertices[i+2].Z << ") -> (" << vertex2.X << ","  << vertex2.Y << ","  << vertex2.Z << ")\n";
 					
-				draw_line(mVertices[i].mPixelColor, mVertices[i+1].mPixelColor,vertex0.X, vertex0.Y, vertex1.X, vertex1.Y,vertex0.Z, vertex1.Z);	
-				draw_line(mVertices[i+1].mPixelColor, mVertices[i+2].mPixelColor,vertex1.X, vertex1.Y, vertex2.X, vertex2.Y,vertex1.Z,vertex2.Z);	
-				draw_line(mVertices[i+2].mPixelColor, mVertices[i].mPixelColor,vertex2.X, vertex2.Y, vertex0.X, vertex0.Y,vertex2.Z,vertex0.Z);	
+				draw_line(mVertices[i].mPixelColor, mVertices[i+1].mPixelColor,vertex0.X/vertex0.W, vertex0.Y/vertex0.W, vertex1.X/vertex1.W, vertex1.Y/vertex1.W,vertex0.Z, vertex1.Z);	
+				draw_line(mVertices[i+1].mPixelColor, mVertices[i+2].mPixelColor,vertex1.X/vertex1.W, vertex1.Y/vertex1.W, vertex2.X/vertex2.W, vertex2.Y/vertex2.W,vertex1.Z,vertex2.Z);	
+				draw_line(mVertices[i+2].mPixelColor, mVertices[i].mPixelColor,vertex2.X/vertex2.W, vertex2.Y/vertex2.W, vertex0.X/vertex0.W, vertex0.Y/vertex0.W,vertex2.Z,vertex0.Z);	
 					
 				vertex0 = screenMatrix.MultVertex(mVertices[i+3]);
 				vertex1 = screenMatrix.MultVertex(mVertices[i+4]);
 				vertex2 = screenMatrix.MultVertex(mVertices[i+5]);
+			}
+			
+		
+		}
+		else{
+			for(int z = 0; z < (size)-1; z = (z+3)){ // for every three vertices
+			
+				BerrycentricRasterization(vertex0, vertex1, vertex2);//Rasterize triangle
+				vertex0 = screenMatrix.MultVertex(mVertices[z+3]);
+				vertex1 = screenMatrix.MultVertex(mVertices[z+4]);
+				vertex2 = screenMatrix.MultVertex(mVertices[z+5]);
+				
+			}
+			
+			
 		}
 		
+	
+		// We've dealt with all of the vertices in the current stack
 		for(int i = 0; i < size; i++){
 				mVertices.pop_back();
 			
@@ -475,131 +487,29 @@ MGLfloat TriangleArea(GLVertex p1, GLVertex p2, GLVertex p3){
 	 
 	 }
 	 
- void RenderQuads(MGLMatrix screenMatrix, bool triangulate ){
+ void RenderQuads(MGLMatrix screenMatrix){
  
-	int size = mVertices.size();
+
 
 	cout << "=========RenderQuads============\n";
-	//screenMatrix.seeMatrix();
 	
-
+		// reverticize the vertex list
+		vector<GLVertex> newVertices;
+		newVertices.push_back(mVertices[0]);	
+		newVertices.push_back(mVertices[1]);	
+		newVertices.push_back(mVertices[2]);
 	
-	float divisor0 = -mVertices[0].Z;
-	float divisor1 = -mVertices[1].Z;	
-	float divisor2 = -mVertices[2].Z;	
-	
-	if(divisor0 == 0)
-			divisor0 = 1;
-			
-	if(divisor1 == 0)
-			divisor1 = 1;
-			
-	if(divisor2 == 0)
-		divisor2 = 1;
-	
-		GLVertex vertex0 = screenMatrix.MultVertex(mVertices[0]);
-		GLVertex vertex1 = screenMatrix.MultVertex(mVertices[1]);
-		GLVertex vertex2 = screenMatrix.MultVertex(mVertices[2]);
-
-
-		if(triangulate){	
-				
-					
-					// draw first three
-				draw_line(mVertices[0].mPixelColor, mVertices[1].mPixelColor, vertex0.X/divisor0, vertex0.Y/divisor0, vertex1.X/divisor1, vertex1.Y/divisor1);	
-				draw_line(mVertices[1].mPixelColor, mVertices[2].mPixelColor, vertex1.X/divisor1, vertex1.Y/divisor1, vertex2.X/divisor2, vertex2.Y/divisor2);	
-				draw_line(mVertices[2].mPixelColor, mVertices[0].mPixelColor, vertex2.X/divisor2, vertex2.Y/divisor2, vertex0.X/divisor0, vertex0.Y/divisor0);	
-					
-					
-				vertex0 = screenMatrix.MultVertex(mVertices[2]);
-				vertex1 = screenMatrix.MultVertex(mVertices[3]);
-				vertex2 = screenMatrix.MultVertex(mVertices[0]);
-				
-					float divisor0 = -mVertices[2].Z;
-					float divisor1 = -mVertices[3].Z;	
-					float divisor2 = -mVertices[0].Z;	
-				// draw second three
-				draw_line(mVertices[2].mPixelColor, mVertices[3].mPixelColor, vertex0.X/divisor0, vertex0.Y/divisor0, vertex1.X/divisor1, vertex1.Y/divisor1);	
-				draw_line(mVertices[3].mPixelColor, mVertices[4].mPixelColor, vertex1.X/divisor1, vertex1.Y/divisor1, vertex2.X/divisor2, vertex2.Y/divisor2);	
-				draw_line(mVertices[4].mPixelColor, mVertices[2].mPixelColor, vertex2.X/divisor2, vertex2.Y/divisor2, vertex0.X/divisor0, vertex0.Y/divisor0);		
+		newVertices.push_back(mVertices[2]);	
+		newVertices.push_back(mVertices[3]);	
+		newVertices.push_back(mVertices[0]);
 		
-		for(int i = 0; i < size; i++){
-				mVertices.pop_back();
-			
-		}
-		
-		/////////////////////////////////////////////////////////
 	
-
+		mVertices = newVertices;
+		
+		RenderTriangles(screenMatrix, true);
+	
 		return;
 	}
-	
-	// Draw the lines, wireframe quad for now
-	for(int i = 0; i < size-1; i++){
-						
-			vertex0 = screenMatrix.MultVertex(mVertices[i]);
-			vertex1 = screenMatrix.MultVertex(mVertices[i+1]);
-			
-			divisor0 = -mVertices[i].Z;
-			divisor1 = -mVertices[i+1].Z;	
-			
-			
-			if(divisor0 == 0 && divisor1 == 0){	
-				if(vertex0.Z == vertex1.Z || (vertex0.Z+vertex1.Z) == 1){
-					divisor0 = 1;
-					divisor1 = 1;
-				}
-				else{
-					divisor0 = vertex0.Z;
-					divisor1 = vertex1.Z;
-				
-				}
-				
-			}
-			//if(divisor1 == 0)
-			//	divisor1 = 1;
-			cout << "======Line " << i+1 << "=====\n";
-		    cout << "mVertices[" << i   <<"] = ( " << mVertices[i].X   << "," << mVertices[i].Y    << "," << mVertices[i].Z  << ") -> (" << vertex0.X/divisor0 << ","  << vertex0.Y/divisor0 << "," <<vertex0.Z <<")\n";
-			cout << "mVertices[" << i+1 <<"] = ( " << mVertices[i+1].X << "," << mVertices[i+1].Y  << "," << mVertices[i+1].Z<< ") -> (" << vertex1.X/divisor1 << ","  << vertex1.Y/divisor1 << "," <<vertex1.Z  << ")\n";
-			cout << "divisor0 = " << divisor0 << " divisor1 = " << divisor1 << "\n"; 
-			draw_line(mVertices[i].mPixelColor, mVertices[i+1].mPixelColor, vertex0.X/divisor0 , vertex0.Y/divisor0, vertex1.X/divisor1, vertex1.Y/divisor1, vertex0.Z, vertex1.Z);	
-					
-			
-	}
-	
-	
-	// Draw the last line back to the first
-	vertex0 = screenMatrix.MultVertex(mVertices[size-1]);
-	vertex1 = screenMatrix.MultVertex(mVertices[0]);	
-	
-		divisor0 = -mVertices[size-1].Z;
-		divisor1 = -mVertices[0].Z;	
-	
-		if(divisor0 == 0 && divisor1 == 0){	
-				if(vertex0.Z == vertex1.Z || (vertex0.Z+vertex1.Z) == 1){
-					divisor0 = 1;
-					divisor1 = 1;
-				}
-				else{
-					divisor0 = vertex0.Z;
-					divisor1 = vertex1.Z;
-				
-				}
-				
-			}
-		
-	cout << "======Line " << size << "=====\n";
-	 cout << "mVertices[" << size-1   <<"] = ( " << mVertices[size-1].X   << "," << mVertices[size-1].Y    << "," << mVertices[size-1].Z  << ") -> (" << vertex0.X/divisor0 << ","  << vertex0.Y/divisor0 << "," <<vertex0.Z <<")\n";
-			cout << "mVertices[" << 0<<"] = ( " << mVertices[0].X << "," << mVertices[0].Y  << "," << mVertices[0].Z<< ") -> (" << vertex1.X/divisor1 << ","  << vertex1.Y/divisor1 << "," <<vertex1.Z  << ")\n";
-				
-	draw_line(mVertices[size-1].mPixelColor, mVertices[0].mPixelColor, vertex0.X/divisor0 , vertex0.Y/divisor0, vertex1.X/divisor1, vertex1.Y/divisor1, vertex0.Z, vertex1.Z);	
-	
-	for(int i = 0; i < size; i++){
-				mVertices.pop_back();			
-	}
-		
-	 
-}
 void mglEnd()
 {
 	
@@ -658,7 +568,7 @@ void mglEnd()
 	}
 	else if(VIEW_POLY == MGL_QUADS){
 		
-			RenderQuads(screenMatrix, false);
+			RenderQuads(screenMatrix);
 		return;
 	}
 	//if we reached this point something went qrong, throw an error
@@ -668,10 +578,10 @@ void mglEnd()
 
 }
 
-void set_pixel(MGLpixel color, float x, float y){
+void set_pixel(MGLpixel color, int x, int y){
 	set_pixel(color, x, y, 0);	
 }
-void set_pixel(MGLpixel color, float x, float y, float depth)
+void set_pixel(MGLpixel color, int x, int y, float depth)
 {
     //float col[] = { 1.0, 1.0, 1.0 };
     //set_pixel(x,y,col);
@@ -685,15 +595,15 @@ void set_pixel(MGLpixel color, float x, float y, float depth)
 	
 	// the new pixel is deeper than the old pixel
     // do not replace	
-	if(depth < mZBuffer[(WIDTH*int(y)) + int(x)]){
+	if(depth < mZBuffer[(WIDTH*y) + x]){
 		//cout << "Pixel " << (WIDTH*int(y)) + int(x) << " is ocluded\n";
 		return;
 		
 	}
 	
 	//cout << "setting pixel " << (WIDTH*int(y)) + int(x) << " to depth = "<< depth << "\n";
-    mZBuffer[(WIDTH*int(y)) + int(x)] = depth;
-    mFrameBuffer[(WIDTH*int(y)) + int(x)] = color;
+    mZBuffer[(WIDTH*y) + x] = depth;
+    mFrameBuffer[(WIDTH*y) + x] = color;
     
     //mFrameBuffer[(WIDTH*int(y)) + int(x)] = 10001000;
 }
@@ -754,7 +664,7 @@ void draw_line(MGLpixel pixelColor1,MGLpixel pixelColor2, int x0, int y0, int x1
 				else
 					depth = alpha*depth2 + beta*depth1;
 					
-				set_pixel(color, x0, y, depth);
+					set_pixel(color, int(x0), int(y), depth);
 				}
 		}else if(y0 > y1){
 			
@@ -772,7 +682,7 @@ void draw_line(MGLpixel pixelColor1,MGLpixel pixelColor2, int x0, int y0, int x1
 				else
 					depth = alpha*depth2 + beta*depth1;
 					
-				set_pixel(color, x0, y, depth);
+				set_pixel(color, int(x0), int(y), depth);
 				
 				}
 		}
@@ -802,7 +712,7 @@ void draw_line(MGLpixel pixelColor1,MGLpixel pixelColor2, int x0, int y0, int x1
 					depth = depth1;
 				else
 					depth = alpha*depth2 + beta*depth1;
-                set_pixel(color, x, m*x + b, depth);
+                set_pixel(color, int(x), int(m*x + b), depth);
                 }
         }else if((m >= 1) || (m <= -1)){ // y = m*x+b -> (y-b)/m = x
             //cout << "abs Slope is greater than 1\n";
@@ -824,7 +734,7 @@ void draw_line(MGLpixel pixelColor1,MGLpixel pixelColor2, int x0, int y0, int x1
 								depth = depth1;
 							else
 								depth = alpha*depth2 + beta*depth1;
-							set_pixel(color, ((y-b)/m), y, depth);
+							set_pixel(color, int((y-b)/m), int(y), depth);
 					}
 						//cout << "y = " << y << " x = " << ((y-b)/m) << "\n";
 
@@ -844,7 +754,7 @@ void draw_line(MGLpixel pixelColor1,MGLpixel pixelColor2, int x0, int y0, int x1
 						else
 							depth = alpha*depth2 + beta*depth1;
 						//cout << "y = " << y << " x = " << ((y-b)/m) << "\n";
-						set_pixel(color, ((y-b)/m), y, depth);
+						set_pixel(color, int((y-b)/m), int(y), depth);
 						
 						}
                 }
@@ -868,7 +778,7 @@ void draw_line(MGLpixel pixelColor1,MGLpixel pixelColor2, int x0, int y0, int x1
 					depth = depth1;
 				else
 					depth = alpha*depth2 + beta*depth1;
-                set_pixel(color, x, m*x + b, depth);
+                set_pixel(color, int(x), int(m*x + b), depth);
                 
                 }
         }else if((m >= 1) || (m <= -1)){ 
@@ -887,7 +797,7 @@ void draw_line(MGLpixel pixelColor1,MGLpixel pixelColor2, int x0, int y0, int x1
 					depth = alpha*depth2 + beta*depth1;
                 //cout << "y = " << y << " x = " << ((y-b)/m) << "\n";
                 //cout << "where am i " << y << "|" << y1 << "\n";
-					set_pixel(color, ((y-b)/m), y, depth);
+					set_pixel(color, int((y-b)/m), int(y), depth);
              }
                 
             }else{
@@ -902,7 +812,7 @@ void draw_line(MGLpixel pixelColor1,MGLpixel pixelColor2, int x0, int y0, int x1
 					depth = depth1;
 				else
 					depth = alpha*depth2 + beta*depth1;
-					set_pixel(color, ((y-b)/m), y, depth);
+					set_pixel(color, int((y-b)/m), int(y), depth);
 					
 					}
            }   
@@ -941,7 +851,7 @@ void mglVertex3(MGLfloat x,
 	vertex.X = x;
 	vertex.Y = y;
 	vertex.Z = z;
-	vertex.w = 1;
+	vertex.W = 1;
 	vertex.mPixelColor = mColor;
 	//cout << vertex.X << " " << vertex.Y  << " " <<  vertex.Z << endl;
 	mVertices.push_back(vertex);
