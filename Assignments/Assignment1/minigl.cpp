@@ -37,10 +37,7 @@ private:
 	
 public:
 	MGLMatrix(){
-		
-	
-		SetIdentity();
-	
+		SetIdentity();	
 	}
 	
 	void SetIdentity(){
@@ -57,12 +54,10 @@ public:
 	}
 	
 	// we assume the matrix is a size 16 array
-	void SetMatrix(const MGLfloat *newMatrix){
-			
+	void SetMatrix(const MGLfloat *newMatrix){			
 		// Obliterates the current matrix with the new one
 		for(int i = 0; i < 16; i++)
 			mMatrix[i] = newMatrix[i];
-
 	}
 	
 	void SetMatrix(MGLMatrix newMatrix){
@@ -70,7 +65,6 @@ public:
 		// Obliterates the current matrix with the new one
 		for(int i = 0; i < 16; i++)
 			mMatrix[i] = newMatrix.mMatrix[i];
-
 	}
 	
 	void ScaleMatrix(MGLfloat x, MGLfloat y, MGLfloat z){
@@ -81,22 +75,14 @@ public:
 		scalar[5] = y;
 		scalar[10] = z;
 		
-        //scalar.MultiplyMatrix(*this);
 		this->MultiplyMatrixR(scalar);
-       // this->SetMatrix(scalar);
-		
-		
-		
 	}
 	
 
 
 	void RotateMatrix(MGLfloat angle, MGLfloat X, MGLfloat Y,MGLfloat Z ){
-		
-		
+			
 		MGLMatrix Rotate;
-		
-
 		
 		MGLfloat normal = sqrt(X*X + Y*Y + Z*Z );
 		MGLfloat x = X/normal; 
@@ -105,10 +91,6 @@ public:
 		
 		MGLfloat c  = cos((angle*PI)/180);
 		MGLfloat s = sin((angle*PI)/180); 
-		//float cosh = cos(angle);
-		//float sin  = sin(angle);
-		
-		//mMatrix[0] = 
 		
 		Rotate[0] = ((x*x)*(1-c)) + c;
 		Rotate[1] = ((y*x)*(1-c)) + z*s;
@@ -124,17 +106,11 @@ public:
 		Rotate[9]  = ((y*z)*(1-c)) - x*s;
 		Rotate[10] = ((z*z)*(1-c)) + c;
 		Rotate[11] = 0;
-		
-			
+				
 		Rotate[12] = 0;
 		Rotate[13] = 0;
 		Rotate[14] = 0;
 		Rotate[15] = 1;
-		cout << "Rotating matrix\n";
-		Rotate.seeMatrix();
-		
-		//Rotate.MultiplyMatrix(*this);
-		//this->SetMatrix(Rotate);
         this->MultiplyMatrixR(Rotate);
 	}
 	
@@ -201,8 +177,6 @@ public:
 		
 		GLVertex newVertex;
 		MGLfloat temp[4];
-		//cout << "Input vertex\n";
-		//cout << "X = " << vertex.X << " Y =  " << vertex.Y  << " Z =  " << vertex.Z << "\n" ;
 		// for each row
 		for(int i = 0; i < 4; i++){			
 			// multiple against each column of new matrix	
@@ -213,9 +187,7 @@ public:
 		newVertex.Y = temp[1];
 		newVertex.Z = temp[2];
 		newVertex.W = temp[3];
-		//cout << "Output vertex\n";
-		//cout << newVertex.X << " " << newVertex.Y  << " " << newVertex.Z << "\n";
-		
+	
 		return newVertex;
 		
 	}
@@ -246,19 +218,12 @@ public:
 			}
 	
 	}
-	
-	//MGLMatrix operator *(GLVertex &vertex){
-	//	
-	//		return this->MultVertex(vertex);
-		
-	//}
-	
-	
+
 };
 
 
 
-
+// Function prototypes
 void draw_line(MGLpixel color1,MGLpixel color2, int x0, int y0, int x1, int y1);
 void draw_line(MGLpixel color1,MGLpixel color2, int x0, int y0, int x1, int y1, float depth1, float depth2);
 void set_pixel(MGLpixel color, int x, int y);
@@ -267,11 +232,12 @@ void set_pixel(MGLpixel color, int x, int y, float depth);
 
 
 //*********Global Variables**********//
-bool mHasBegun = false;
+
 #define WIDTH 320
 #define HEIGHT 240
-
-MGLMatrix mCurrentMatrix;
+bool mHasBegun = false;
+bool WIREFRAME = false;
+bool Zbuffinit = false;
 
 vector<GLVertex> mVertices;
 MGLpixel mFrameBuffer[(WIDTH*HEIGHT)];
@@ -279,7 +245,7 @@ MGLfloat mZBuffer[(WIDTH*HEIGHT)];
 MGLpixel mColor;
 
 
-
+MGLMatrix mCurrentMatrix;
 // We create out modelview stack
 MGLMatrix mModelViewStack[32];
 int mModelViewTracker = 0;
@@ -287,12 +253,9 @@ int mModelViewTracker = 0;
 MGLMatrix mProjectionStack[32];
 int mProjectionTracker = 0;
 
-//vector<GLMatrix*>
-//vector<MGLfloat> mZbuffer;
+
 int VIEW_STATE = 0;
 int VIEW_POLY  = 0;
-
-float wDivisor = 1;
 
 
 /**
@@ -321,9 +284,9 @@ void mglReadPixels(MGLsize width,
                    MGLpixel *data)
 {
 
-	printf("mgl read pixels\n");
-	MGLpixel pix = 0;
-	MGL_SET_BLUE(pix, 255);
+	//printf("mgl read pixels\n");
+	//MGLpixel pix = 0;
+	//MGL_SET_BLUE(pix, 255);
 	//for(int i = 0; i < (height-1); i++)
 	//	mFrameBuffer[(width*i) + i] = pix;
 		
@@ -342,13 +305,15 @@ void mglBegin(MGLpoly_mode mode)
 {
 	VIEW_POLY = mode;
 	mHasBegun = true;
-	
-	
-	for(int i = 0; i < WIDTH*HEIGHT; i++){
-		mZBuffer[i] = 0;
+		
+	// needed a way to init the Z buff once, at progam start
+	if(!Zbuffinit){ 
+		for(int i = 0; i < WIDTH*HEIGHT; i++){
+			mZBuffer[i] =  INFINITY;
+		}
+		Zbuffinit = true;
 	}
-	
-	
+		
 }
 
 MGLfloat max(MGLfloat a, MGLfloat b){
@@ -363,18 +328,16 @@ MGLfloat min(MGLfloat a, MGLfloat b){
 	
 }
 
-MGLfloat TriangleArea(GLVertex p1, GLVertex p2, GLVertex p3){
-	
-	
-	
-	return ((p1.X*p2.Y + p2.X*p3.Y + p3.X*p1.Y - p2.X*p1.Y - p3.X*p2.X - p1.X*p3.Y)/2);
-
+int orient2d(GLVertex a, GLVertex b, GLVertex c)
+{
+    return (b.X-a.X)*(c.Y-a.Y) - (b.Y-a.Y)*(c.X-a.X);
 }
 
-void BerrycentricRasterization(GLVertex vertex0,GLVertex vertex1,GLVertex vertex2){
+void BerrycentricRasterization(GLVertex vertex0,GLVertex vertex1,GLVertex vertex2, MGLpixel colors[3]){
 	
-	MGLfloat totalArea = TriangleArea(vertex0, vertex1, vertex2);
-	GLVertex point;
+	MGLfloat totalArea = orient2d(vertex0, vertex1, vertex2);//TriangleArea(vertex0, vertex1, vertex2);
+	GLVertex point; // this is a point given in device pixels, we do not need a divisor
+		point.W = 1;
 	
 	MGLfloat alpha = 0;
 	MGLfloat beta = 0;
@@ -384,37 +347,51 @@ void BerrycentricRasterization(GLVertex vertex0,GLVertex vertex1,GLVertex vertex
 	MGLfloat minX  = min(vertex0.X, min(vertex1.X, vertex2.X));
 	MGLfloat maxX  = max(vertex0.X, max(vertex1.X, vertex2.X));
 	MGLfloat maxY  = max(vertex0.Y, max(vertex1.Y, vertex2.Y));
-	//cout << minY << "|" << minX << "|" << maxY << "|"<< maxX << "\n";
 	
+	MGLpixel color = 000000;
+	
+	MGLbyte red1 = MGL_GET_RED(colors[0]);
+    MGLbyte green1 = MGL_GET_GREEN(colors[0]);
+    MGLbyte blue1 = MGL_GET_BLUE(colors[0]);
+
+	MGLbyte red2 = MGL_GET_RED(colors[1]);
+    MGLbyte green2 = MGL_GET_GREEN(colors[1]);
+    MGLbyte blue2 = MGL_GET_BLUE(colors[1]);
+ 
+	MGLbyte red3 = MGL_GET_RED(colors[2]);
+    MGLbyte green3 = MGL_GET_GREEN(colors[2]);
+    MGLbyte blue3 = MGL_GET_BLUE(colors[2]);
+
 	for(int i = minX; i <= maxX; i++){ // loop from [min x, max x]
 				point.X = i;
 				for(int j = minY; j < maxY; j++){ // loop from [min y, max y]
-					
-					
+									
 					point.Y = j;
+										
+					alpha = orient2d(vertex1, vertex2, point);				
+					beta = orient2d(vertex2, vertex0, point);
+					gamma = orient2d(vertex0, vertex1, point);
 					
-					alpha = (TriangleArea(point, vertex1,vertex2)/totalArea);
-					beta = (TriangleArea(point, vertex2,vertex0)/totalArea);
-					
-					/*
-					 * alpha = ((vertex1.Y - vertex2.Y)*i + (vertex1.X - vertex2.X)*j + (vertex2.X*vertex1.Y) + (vertex1.X*vertex2.Y))/
-						((vertex1.Y - vertex2.Y)*vertex0.X + (vertex1.X - vertex2.X)*vertex0.Y + (vertex2.X*vertex1.Y) + (vertex1.X*vertex2.Y));
-					beta = ((vertex2.Y - vertex0.Y)*i + (vertex2.X - vertex0.X)*j + (vertex2.X*vertex0.Y) + (vertex0.X*vertex2.Y))/
-						((vertex2.Y - vertex0.Y)*vertex1.X + (vertex2.X - vertex0.X)*vertex1.Y + (vertex2.X*vertex0.Y) + (vertex0.X*vertex2.Y));;
-					*/
-					
-					gamma = 1 - alpha - gamma;
-					
-					MGLpixel color = 0; 
-					MGL_SET_RED(color,MGLbyte(alpha*mColorRGB.r) );
-					MGL_SET_GREEN(color,MGLbyte(alpha*mColorRGB.g) );
-					MGL_SET_BLUE(color,MGLbyte(alpha*mColorRGB.b) );
-	
-					cout << alpha << "|" << beta << "|" << gamma << "\n";
-					
-					if((alpha < 1) && (beta  < 1) && (gamma < 1) && (alpha >= 0) && (beta  >= 0 ) && (gamma >= 0)){
-						cout << "setting pixel " << i << " " << j << " to color" << color << "\n";
-						set_pixel(color, float(i), float(j));
+				
+					if( (alpha >= 0) && (beta  >= 0 ) && (gamma >= 0)){
+							
+							// Normalize our areas
+							alpha /= totalArea;				
+							beta /= totalArea;
+							gamma /= totalArea;
+							
+							MGLbyte r = MGLbyte((alpha*red1)+(beta*red2)+ (gamma*red3));
+							MGLbyte g = MGLbyte((alpha*green1)+(beta*green2)+ (gamma*green3));
+							MGLbyte b = MGLbyte((alpha*blue1)+(beta*blue2) + (gamma*blue3));
+							
+							float depth = alpha*vertex0.Z + beta*vertex1.Z + gamma*vertex2.Z;
+
+							MGL_SET_BLUE(color, b);
+							MGL_SET_RED(color, r);
+							MGL_SET_GREEN(color, g);
+							//cout << "setting pixel " << i << " " << j << " to color r = " << MGL_GET_RED(color) << " g = " << MGL_GET_GREEN(color) <<
+							// " blue = " <<  MGL_GET_BLUE(color) <<  " \n";
+							set_pixel(color, i, j, depth);
 					}
 				}
 					
@@ -422,7 +399,7 @@ void BerrycentricRasterization(GLVertex vertex0,GLVertex vertex1,GLVertex vertex
 	
 	return;
 	
-	}
+}
 /**
  * Stop specifying the vertices for a group of primitives.
  */ 
@@ -430,7 +407,7 @@ void BerrycentricRasterization(GLVertex vertex0,GLVertex vertex1,GLVertex vertex
 	 
 		int size = mVertices.size();
 		int chop = size % 3;
-		cout << "Chopped " << chop << " vertices\n";
+		//cout << "Chopped " << chop << " vertices\n";
 		for(int i = 0; i < chop; ++i){
 			mVertices.pop_back();
 		}
@@ -442,16 +419,19 @@ void BerrycentricRasterization(GLVertex vertex0,GLVertex vertex1,GLVertex vertex
 		GLVertex vertex1 = screenMatrix.MultVertex(mVertices[1]);
 		GLVertex vertex2 = screenMatrix.MultVertex(mVertices[2]);
 			
-		
+		MGLpixel colors[3];
+		colors[0] = mVertices[0].mPixelColor;
+		colors[1] = mVertices[1].mPixelColor;
+		colors[2] = mVertices[2].mPixelColor;
 		
 		if(wireframe){
 			
 				// Draw the lines, wireframe triangle for now
 			for(int i = 0; i < (size)-1; i = (i+3)){
 				
-				cout << "mVertices[" << i   <<"] = ( " << mVertices[i].X   << "," << mVertices[i].Y   << "," << mVertices[i].Z   << ") -> (" << vertex0.X << ","  << vertex0.Y << ","  << vertex0.Z << ")\n";
-				cout << "mVertices[" << i+1 <<"] = ( " << mVertices[i+1].X << "," << mVertices[i+1].Y << "," << mVertices[i+1].Z << ") -> (" << vertex1.X << ","  << vertex1.Y << ","  << vertex1.Z << ")\n";
-				cout << "mVertices[" << i+2 <<"] = ( " << mVertices[i+2].X << "," << mVertices[i+2].Y << "," << mVertices[i+2].Z << ") -> (" << vertex2.X << ","  << vertex2.Y << ","  << vertex2.Z << ")\n";
+				//cout << "mVertices[" << i   <<"] = ( " << mVertices[i].X   << "," << mVertices[i].Y   << "," << mVertices[i].Z   << ") -> (" << vertex0.X << ","  << vertex0.Y << ","  << vertex0.Z << ")\n";
+				//cout << "mVertices[" << i+1 <<"] = ( " << mVertices[i+1].X << "," << mVertices[i+1].Y << "," << mVertices[i+1].Z << ") -> (" << vertex1.X << ","  << vertex1.Y << ","  << vertex1.Z << ")\n";
+				//cout << "mVertices[" << i+2 <<"] = ( " << mVertices[i+2].X << "," << mVertices[i+2].Y << "," << mVertices[i+2].Z << ") -> (" << vertex2.X << ","  << vertex2.Y << ","  << vertex2.Z << ")\n";
 					
 				draw_line(mVertices[i].mPixelColor, mVertices[i+1].mPixelColor,vertex0.X/vertex0.W, vertex0.Y/vertex0.W, vertex1.X/vertex1.W, vertex1.Y/vertex1.W,vertex0.Z, vertex1.Z);	
 				draw_line(mVertices[i+1].mPixelColor, mVertices[i+2].mPixelColor,vertex1.X/vertex1.W, vertex1.Y/vertex1.W, vertex2.X/vertex2.W, vertex2.Y/vertex2.W,vertex1.Z,vertex2.Z);	
@@ -465,12 +445,31 @@ void BerrycentricRasterization(GLVertex vertex0,GLVertex vertex1,GLVertex vertex
 		
 		}
 		else{
-			for(int z = 0; z < (size)-1; z = (z+3)){ // for every three vertices
-			
-				BerrycentricRasterization(vertex0, vertex1, vertex2);//Rasterize triangle
-				vertex0 = screenMatrix.MultVertex(mVertices[z+3]);
-				vertex1 = screenMatrix.MultVertex(mVertices[z+4]);
-				vertex2 = screenMatrix.MultVertex(mVertices[z+5]);
+			for(int i = 0; i < (size)-1; i = (i+3)){ // for every three vertices
+				
+
+				
+				// Do W division
+				vertex0.X =  vertex0.X/vertex0.W;
+				vertex0.Y =  vertex0.Y/vertex0.W;
+				vertex1.X =  vertex1.X/vertex1.W;
+				vertex1.Y =  vertex1.Y/vertex1.W;
+				vertex2.X =  vertex2.X/vertex2.W;
+				vertex2.Y =  vertex2.Y/vertex2.W;
+
+				colors[0] = mVertices[i].mPixelColor;
+				colors[1] = mVertices[i+1].mPixelColor;
+				colors[2] = mVertices[i+2].mPixelColor;
+				
+				//cout << "mVertices[" << i   <<"] = ( " << mVertices[i].X   << "," << mVertices[i].Y   << "," << mVertices[i].Z   << ") -> (" << vertex0.X << ","  << vertex0.Y << ","  << vertex0.Z << ")\n";
+				//cout << "mVertices[" << i+1 <<"] = ( " << mVertices[i+1].X << "," << mVertices[i+1].Y << "," << mVertices[i+1].Z << ") -> (" << vertex1.X << ","  << vertex1.Y << ","  << vertex1.Z << ")\n";
+				//cout << "mVertices[" << i+2 <<"] = ( " << mVertices[i+2].X << "," << mVertices[i+2].Y << "," << mVertices[i+2].Z << ") -> (" << vertex2.X << ","  << vertex2.Y << ","  << vertex2.Z << ")\n";
+				
+				
+				BerrycentricRasterization(vertex0, vertex1, vertex2, colors);//Rasterize triangle
+				vertex0 = screenMatrix.MultVertex(mVertices[i+3]);
+				vertex1 = screenMatrix.MultVertex(mVertices[i+4]);
+				vertex2 = screenMatrix.MultVertex(mVertices[i+5]);
 				
 			}
 			
@@ -485,13 +484,12 @@ void BerrycentricRasterization(GLVertex vertex0,GLVertex vertex1,GLVertex vertex
 		}
 		
 	 
-	 }
+}
 	 
  void RenderQuads(MGLMatrix screenMatrix){
  
 
-
-	cout << "=========RenderQuads============\n";
+	//cout << "=========RenderQuads============\n";
 	
 		// reverticize the vertex list
 		vector<GLVertex> newVertices;
@@ -506,10 +504,10 @@ void BerrycentricRasterization(GLVertex vertex0,GLVertex vertex1,GLVertex vertex
 	
 		mVertices = newVertices;
 		
-		RenderTriangles(screenMatrix, true);
+		RenderTriangles(screenMatrix, WIREFRAME);
 	
 		return;
-	}
+}
 void mglEnd()
 {
 	
@@ -548,21 +546,21 @@ void mglEnd()
 	viewport.TranslateMatrix(1, 1, 1);
 		
 	// Check our matrices for an easy one
-	cout << "=======Projection matrix\n";
-	mProjectionStack[mProjectionTracker].seeMatrix();
-	cout << "=======Modelveiw matrix\n";
-	mModelViewStack[mModelViewTracker].seeMatrix();
+	//cout << "=======Projection matrix\n";
+	//mProjectionStack[mProjectionTracker].seeMatrix();
+	//cout << "=======Modelveiw matrix\n";
+	//mModelViewStack[mModelViewTracker].seeMatrix();
 	// next we need to take the vertex cooridinates into screen space
 	// To do this we apply the modelview and projection matrices
 	//model.MultiplyMatrix();		
 	MGLMatrix screenMatrix = model.MultiplyMatrix(proj).MultiplyMatrix(viewport);
     //= model.MultiplyMatrix(proj).MultiplyMatrix(viewport); //.MultiplyMatrix();
 		
-	cout << "========Screen matrix\n";
-	screenMatrix.seeMatrix();
+	//cout << "========Screen matrix\n";
+	//screenMatrix.seeMatrix();
 	
 	if(VIEW_POLY == MGL_TRIANGLES){
-			RenderTriangles(screenMatrix, true);
+			RenderTriangles(screenMatrix, WIREFRAME);
 			
 		return;
 	}
@@ -583,29 +581,20 @@ void set_pixel(MGLpixel color, int x, int y){
 }
 void set_pixel(MGLpixel color, int x, int y, float depth)
 {
-    //float col[] = { 1.0, 1.0, 1.0 };
-    //set_pixel(x,y,col);
-    
 
     // Clip all pixels that are not in the view port
     if((x < 0) || (x > WIDTH) || (y < 0) || (y > HEIGHT)){ // not a vaild pixel, clip it, may need for rasterizer
 		//cout << "Clipping pixel outside of viewport\n";
 		return ;
 	}
-	
 	// the new pixel is deeper than the old pixel
     // do not replace	
 	if(depth < mZBuffer[(WIDTH*y) + x]){
-		//cout << "Pixel " << (WIDTH*int(y)) + int(x) << " is ocluded\n";
-		return;
-		
+		//cout << "Pixel " << (WIDTH*int(y)) + int(x) << " is ocluded\n"; 
+		mZBuffer[(WIDTH*y) + x] = depth;
+		mFrameBuffer[(WIDTH*y) + x] = color;
+		return;	
 	}
-	
-	//cout << "setting pixel " << (WIDTH*int(y)) + int(x) << " to depth = "<< depth << "\n";
-    mZBuffer[(WIDTH*y) + x] = depth;
-    mFrameBuffer[(WIDTH*y) + x] = color;
-    
-    //mFrameBuffer[(WIDTH*int(y)) + int(x)] = 10001000;
 }
 
 
@@ -640,8 +629,8 @@ void draw_line(MGLpixel pixelColor1,MGLpixel pixelColor2, int x0, int y0, int x1
     MGLpixel color = 000000;
     float depth = 0;
     if(depth1 == depth2){
-		cout << "Not going to do depth interpolation\n";
-		cout << "depth1 = " << depth1 << " depth2 = " << depth2 << "\n";
+		//cout << "Not going to do depth interpolation\n";
+		//cout << "depth1 = " << depth1 << " depth2 = " << depth2 << "\n";
 		depth = depth1;
 	}
     
@@ -892,31 +881,28 @@ void mglMatrixMode(MGLmatrix_mode mode)
 void mglPushMatrix()
 {
 		
-	
-	//mCurrentMatrix.seeMatrix();
-	
 	switch(VIEW_STATE){
 		case MGL_MODELVIEW:{
-			cout << "Pushing a  modelview matrix\n";
+			//cout << "Pushing a  modelview matrix\n";
 			
-			mCurrentMatrix.seeMatrix();
+			//mCurrentMatrix.seeMatrix();
 			mModelViewStack[mModelViewTracker++] = mCurrentMatrix;	
 			mCurrentMatrix = mModelViewStack[mModelViewTracker-1] ;			
 			break;
 		}
 		case MGL_PROJECTION:{
-			cout << "Pushing a projection matrix\n";
-			mCurrentMatrix.seeMatrix();
+			//cout << "Pushing a projection matrix\n";
+			//mCurrentMatrix.seeMatrix();
 			 mProjectionStack[mProjectionTracker++] = mCurrentMatrix;
 			 mCurrentMatrix = mProjectionStack[mProjectionTracker++];
 			break;
 		}
 	}
-	cout << "=========new matrix=======\n";
-	mCurrentMatrix.seeMatrix();
-	cout << "End pushing a matrix\n";
+	//cout << "=========new matrix=======\n";
+	//mCurrentMatrix.seeMatrix();
+	//cout << "End pushing a matrix\n";
 	
-	
+
 }
 
 /**
@@ -926,8 +912,8 @@ void mglPushMatrix()
 void mglPopMatrix()
 {
 	
-	cout << "Popping a matrix\n";
-	mCurrentMatrix.seeMatrix();
+	//cout << "Popping a matrix\n";
+	//mCurrentMatrix.seeMatrix();
 	
 	switch(VIEW_STATE){
 		case MGL_MODELVIEW:{
@@ -945,10 +931,10 @@ void mglPopMatrix()
 			break;
 		}
 	}
-	cout << "=============\n";
+	//cout << "=============\n";
 
-	mCurrentMatrix.seeMatrix();
-	cout << "end popping sequence\n";
+	//mCurrentMatrix.seeMatrix();
+	//cout << "end popping sequence\n";
 	}
 
 /**
@@ -1109,4 +1095,12 @@ void mglColor(MGLbyte red,
 	mColorRGB.b = blue;
 	mColorRGB.r = red;
 	mColorRGB.g = green;
+	
+	
+	
+	// cout << "color r = " << MGL_GET_RED(mColor) << " g = " << MGL_GET_GREEN(mColor) <<
+	//						 " blue = " <<  MGL_GET_BLUE(mColor) <<  " \n";
+							 
+	
+	
 }
