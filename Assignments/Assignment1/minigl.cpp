@@ -69,13 +69,17 @@ public:
 	
 	void ScaleMatrix(MGLfloat x, MGLfloat y, MGLfloat z){
 		
+		//cout << "scaling by " << x << " " << y << " " << z << endl;
 		MGLMatrix scalar;
 		scalar.SetIdentity();
 		scalar[0] = x;
 		scalar[5] = y;
 		scalar[10] = z;
 		
+		//scalar.seeMatrix();
 		this->MultiplyMatrixR(scalar);
+		//cout <<"new Matrix" << endl;
+		//this->seeMatrix();
 	}
 	
 
@@ -183,10 +187,13 @@ public:
 			// cout << mMatrix[i] << " " << mMatrix[i+4]<< " " <<  mMatrix[i+8] << " " << mMatrix[i+12] << "\n";
 			temp[i]= mMatrix[i]*vertex.X + mMatrix[i+4]*vertex.Y + mMatrix[i+8]*vertex.Z + mMatrix[i+12]*vertex.W;				
 		}	
+		// set all calculated X,Y, Z, W
 		newVertex.X = temp[0];
 		newVertex.Y = temp[1];
 		newVertex.Z = temp[2];
 		newVertex.W = temp[3];
+		// The new vertex needs the color component
+		newVertex.mPixelColor = vertex.mPixelColor;
 	
 		return newVertex;
 		
@@ -228,20 +235,20 @@ void draw_line(MGLpixel color1,MGLpixel color2, int x0, int y0, int x1, int y1);
 void draw_line(MGLpixel color1,MGLpixel color2, int x0, int y0, int x1, int y1, float depth1, float depth2);
 void set_pixel(MGLpixel color, int x, int y);
 void set_pixel(MGLpixel color, int x, int y, float depth);
-	 
+void RenderTriangles(MGLMatrix viewport, bool wireframe);
 
 
 //*********Global Variables**********//
 
-#define WIDTH 320
-#define HEIGHT 240
+int WIDTH = 0;
+int HEIGHT = 0;
 bool mHasBegun = false;
 bool WIREFRAME = false;
 bool Zbuffinit = false;
 
 vector<GLVertex> mVertices;
-MGLpixel mFrameBuffer[(WIDTH*HEIGHT)];
-MGLfloat mZBuffer[(WIDTH*HEIGHT)];
+MGLpixel *mFrameBuffer;
+MGLfloat *mZBuffer;
 MGLpixel mColor;
 
 
@@ -283,14 +290,34 @@ void mglReadPixels(MGLsize width,
                    MGLsize height,
                    MGLpixel *data)
 {
-
-	//printf("mgl read pixels\n");
-	//MGLpixel pix = 0;
-	//MGL_SET_BLUE(pix, 255);
-	//for(int i = 0; i < (height-1); i++)
-	//	mFrameBuffer[(width*i) + i] = pix;
+	cout << "mglreadpixels\n";
+	// initialize all of the variables
+	WIDTH = width;
+	HEIGHT = height;
+	mFrameBuffer = new  MGLpixel[(WIDTH*HEIGHT)];
+	mZBuffer = new  MGLfloat[(WIDTH*HEIGHT)];
+	// initialize the two buffers 
+	for(int i = 0; i < WIDTH*HEIGHT; i++){
+		mZBuffer[i] =  INFINITY; // very far
+		mFrameBuffer[i] = 0; // all black
+	}
+	
+	
+	// create our viewport matrix		
+	// This defines our veiw port for every model
+	// It translates from world cooridnates to pixel space	
+	MGLMatrix viewport;
+	viewport.SetIdentity();
+    viewport.TranslateMatrix(-0.5, -0.5, -0.5);//mVertices[0].X, mVertices[0].Y, 0);
+	viewport.ScaleMatrix(MGLfloat(WIDTH/2), MGLfloat(HEIGHT/2), 1);
+	viewport.TranslateMatrix(1, 1, 1);
+	
+	
+	// we pass the final tranformation matrix, the viewport.
+	// The vertices are already in prepared for this transform
+	RenderTriangles(viewport, WIREFRAME);
 		
-	for(int i = 0; i < (width*height); i++){
+	for(int i = 0; i < (WIDTH*HEIGHT); i++){
 		data[i] = mFrameBuffer[i];
 	}
 		
@@ -306,13 +333,7 @@ void mglBegin(MGLpoly_mode mode)
 	VIEW_POLY = mode;
 	mHasBegun = true;
 		
-	// needed a way to init the Z buff once, at progam start
-	if(!Zbuffinit){ 
-		for(int i = 0; i < WIDTH*HEIGHT; i++){
-			mZBuffer[i] =  INFINITY;
-		}
-		Zbuffinit = true;
-	}
+
 		
 }
 
@@ -403,27 +424,26 @@ void BerrycentricRasterization(GLVertex vertex0,GLVertex vertex1,GLVertex vertex
 /**
  * Stop specifying the vertices for a group of primitives.
  */ 
- void RenderTriangles(MGLMatrix screenMatrix, bool wireframe){
+ void RenderTriangles(MGLMatrix viewport, bool wireframe){
 	 
-		int size = mVertices.size();
-		int chop = size % 3;
-		//cout << "Chopped " << chop << " vertices\n";
-		for(int i = 0; i < chop; ++i){
-			mVertices.pop_back();
-		}
-	
-		//cout << "Screen matrix\n";
-		//screenMatrix.seeMatrix();
 		
-		GLVertex vertex0 = screenMatrix.MultVertex(mVertices[0]);
-		GLVertex vertex1 = screenMatrix.MultVertex(mVertices[1]);
-		GLVertex vertex2 = screenMatrix.MultVertex(mVertices[2]);
+		// This is where we actually do the drawing
+		// but we need to go from vertices to viewport*vertices irst
+		//cout << "viewport matrix\n";
+		//viewport.seeMatrix();
+		
+		int size = mVertices.size();
+		
+		// Are vertices only need the viewport matrix applied
+		GLVertex vertex0 = viewport.MultVertex(mVertices[0]);
+		GLVertex vertex1 = viewport.MultVertex(mVertices[1]);
+		GLVertex vertex2 = viewport.MultVertex(mVertices[2]);
 			
 		MGLpixel colors[3];
 		colors[0] = mVertices[0].mPixelColor;
 		colors[1] = mVertices[1].mPixelColor;
 		colors[2] = mVertices[2].mPixelColor;
-		
+		//cout <<"colors :" << colors[0] << " " << colors[1] << "  "  << colors[2] << endl;
 		if(wireframe){
 			
 				// Draw the lines, wireframe triangle for now
@@ -437,9 +457,9 @@ void BerrycentricRasterization(GLVertex vertex0,GLVertex vertex1,GLVertex vertex
 				draw_line(mVertices[i+1].mPixelColor, mVertices[i+2].mPixelColor,vertex1.X/vertex1.W, vertex1.Y/vertex1.W, vertex2.X/vertex2.W, vertex2.Y/vertex2.W,vertex1.Z,vertex2.Z);	
 				draw_line(mVertices[i+2].mPixelColor, mVertices[i].mPixelColor,vertex2.X/vertex2.W, vertex2.Y/vertex2.W, vertex0.X/vertex0.W, vertex0.Y/vertex0.W,vertex2.Z,vertex0.Z);	
 					
-				vertex0 = screenMatrix.MultVertex(mVertices[i+3]);
-				vertex1 = screenMatrix.MultVertex(mVertices[i+4]);
-				vertex2 = screenMatrix.MultVertex(mVertices[i+5]);
+				vertex0 = viewport.MultVertex(mVertices[i+3]);
+				vertex1 = viewport.MultVertex(mVertices[i+4]);
+				vertex2 = viewport.MultVertex(mVertices[i+5]);
 			}
 			
 		
@@ -465,11 +485,11 @@ void BerrycentricRasterization(GLVertex vertex0,GLVertex vertex1,GLVertex vertex
 				//cout << "mVertices[" << i+1 <<"] = ( " << mVertices[i+1].X << "," << mVertices[i+1].Y << "," << mVertices[i+1].Z << ") -> (" << vertex1.X << ","  << vertex1.Y << ","  << vertex1.Z << ")\n";
 				//cout << "mVertices[" << i+2 <<"] = ( " << mVertices[i+2].X << "," << mVertices[i+2].Y << "," << mVertices[i+2].Z << ") -> (" << vertex2.X << ","  << vertex2.Y << ","  << vertex2.Z << ")\n";
 				
-				
-				BerrycentricRasterization(vertex0, vertex1, vertex2, colors);//Rasterize triangle
-				vertex0 = screenMatrix.MultVertex(mVertices[i+3]);
-				vertex1 = screenMatrix.MultVertex(mVertices[i+4]);
-				vertex2 = screenMatrix.MultVertex(mVertices[i+5]);
+				//Rasterize triangle
+				BerrycentricRasterization(vertex0, vertex1, vertex2, colors);
+				vertex0 = viewport.MultVertex(mVertices[i+3]);
+				vertex1 = viewport.MultVertex(mVertices[i+4]);
+				vertex2 = viewport.MultVertex(mVertices[i+5]);
 				
 			}
 			
@@ -478,33 +498,45 @@ void BerrycentricRasterization(GLVertex vertex0,GLVertex vertex1,GLVertex vertex
 		
 	
 		// We've dealt with all of the vertices in the current stack
-		for(int i = 0; i < size; i++){
-				mVertices.pop_back();
+		//for(int i = 0; i < size; i++){
+				//mVertices.pop_back();
 			
-		}
+		//}
 		
 	 
 }
 	 
- void RenderQuads(MGLMatrix screenMatrix){
+ void RenderQuads(){
  
 
 	//cout << "=========RenderQuads============\n";
 	
+	//int size = 
 		// reverticize the vertex list
+		int size = mVertices.size();
 		vector<GLVertex> newVertices;
-		newVertices.push_back(mVertices[0]);	
-		newVertices.push_back(mVertices[1]);	
-		newVertices.push_back(mVertices[2]);
+		newVertices.push_back(mVertices[size-4]); //quad 1	
+		newVertices.push_back(mVertices[size-3]); //quad 2
+		newVertices.push_back(mVertices[size-2]); //quad 3
 	
-		newVertices.push_back(mVertices[2]);	
-		newVertices.push_back(mVertices[3]);	
-		newVertices.push_back(mVertices[0]);
+		newVertices.push_back(mVertices[size-2]); //quad 3
+		newVertices.push_back(mVertices[size-1]); //quad 4
+		newVertices.push_back(mVertices[size-4]); //quad 1
 		
+		// pop the last four vertices, this was the quad
+		mVertices.pop_back();
+		mVertices.pop_back();
+		mVertices.pop_back();
+		mVertices.pop_back();
 	
-		mVertices = newVertices;
+		// push the next 6, this is two triangles
+		mVertices.push_back(newVertices[0]);
+		mVertices.push_back(newVertices[1]);
+		mVertices.push_back(newVertices[2]);
+		mVertices.push_back(newVertices[3]);
+		mVertices.push_back(newVertices[4]);
+		mVertices.push_back(newVertices[5]);
 		
-		RenderTriangles(screenMatrix, WIREFRAME);
 	
 		return;
 }
@@ -517,6 +549,7 @@ void mglEnd()
 			return;
 	}
 	
+	// Wee need to save the changes to our matrix before we do multiplication
 	switch(VIEW_STATE){
 		case MGL_MODELVIEW:{	
 			mModelViewStack[mModelViewTracker] = mCurrentMatrix;			
@@ -527,48 +560,31 @@ void mglEnd()
 			break;
 		}
 	}
-	//for(int i = 0; i < (WIDTH*HEIGHT); i++){
-		//cout << "mFrameBuffer = " <<  mFrameBuffer[i] << endl;
-	//}
-	mHasBegun = false;
-	// This is where we actually do the drawing
-	// but we need to go from vertices to vertices*viewmode
-	
-	// This defines our veiw port for every model
-	// It translates from object cooridnates to eye view
-	MGLMatrix viewport;
-	MGLMatrix model = mModelViewStack[mModelViewTracker];
-	MGLMatrix proj = mProjectionStack[mProjectionTracker];
-	
-	viewport.SetIdentity();
-    viewport.TranslateMatrix(-0.5, -0.5, -0.5);//mVertices[0].X, mVertices[0].Y, 0);
-	viewport.ScaleMatrix(MGLfloat(WIDTH/2), MGLfloat(HEIGHT/2), 1);
-	viewport.TranslateMatrix(1, 1, 1);
-		
-	// Check our matrices for an easy one
-	//cout << "=======Projection matrix\n";
-	//mProjectionStack[mProjectionTracker].seeMatrix();
-	//cout << "=======Modelveiw matrix\n";
-	//mModelViewStack[mModelViewTracker].seeMatrix();
-	// next we need to take the vertex cooridinates into screen space
-	// To do this we apply the modelview and projection matrices
-	//model.MultiplyMatrix();		
-	MGLMatrix screenMatrix = model.MultiplyMatrix(proj).MultiplyMatrix(viewport);
-    //= model.MultiplyMatrix(proj).MultiplyMatrix(viewport); //.MultiplyMatrix();
-		
+
+
 	//cout << "========Screen matrix\n";
 	//screenMatrix.seeMatrix();
 	
 	if(VIEW_POLY == MGL_TRIANGLES){
-			RenderTriangles(screenMatrix, WIREFRAME);
+		
+		int size = mVertices.size();
+		int chop = size % 3;
+		//cout << "Chopped " << chop << " vertices\n";
+		for(int i = 0; i < chop; ++i){
+			mVertices.pop_back();
+		}
+	
+			
 			
 		return;
 	}
 	else if(VIEW_POLY == MGL_QUADS){
 		
-			RenderQuads(screenMatrix);
+			RenderQuads();
 		return;
 	}
+	
+	mHasBegun = false;
 	//if we reached this point something went qrong, throw an error
 	MGL_ERROR("A valid polygon type was not chosen");
 	
@@ -590,7 +606,7 @@ void set_pixel(MGLpixel color, int x, int y, float depth)
 	// the new pixel is deeper than the old pixel
     // do not replace	
 	if(depth < mZBuffer[(WIDTH*y) + x]){
-		//cout << "Pixel " << (WIDTH*int(y)) + int(x) << " is ocluded\n"; 
+		//cout << "Pixel " << (WIDTH*int(y)) + int(x) << " is set in the framebuffer to color " << color << "\n"; 
 		mZBuffer[(WIDTH*y) + x] = depth;
 		mFrameBuffer[(WIDTH*y) + x] = color;
 		return;	
@@ -611,6 +627,7 @@ void draw_line(MGLpixel pixelColor1,MGLpixel pixelColor2, int x0, int y0, int x1
 {
 	//cout << "X0 = " << x0 << " Y0 = " << y0 << "\n";
 	//cout << "X1 = " << x1 << " Y0 = " << y1 << "\n";
+	//cout << "Interpolating color " << pixelColor1<< " and " << pixelColor2 << endl;
 
     float dx = x1 - x0;
     float dy = y1 - y0;
@@ -640,11 +657,14 @@ void draw_line(MGLpixel pixelColor1,MGLpixel pixelColor2, int x0, int y0, int x1
 ;		if(y0 < y1){
 			for(int y = y0; y < y1; ++y){
 				alpha = (distancei(x0, y0, x1, y)/distance);
-				beta = 1 - alpha;			
-				color = MGL_SET_BLUE(color, MGLpixel((alpha*blue2)+(beta*blue1)));
-				color = MGL_SET_RED(color, MGLpixel((alpha*red2)+(beta*red1)));
-				color = MGL_SET_GREEN(color, MGLpixel((alpha*green2)+(beta*green1)));
+				beta = 1 - alpha;		
 				
+				//cout << "alpha = " << alpha << " beta = " << beta << endl;
+					
+				MGL_SET_BLUE(color, MGLpixel((alpha*blue2)+(beta*blue1)));
+				MGL_SET_RED(color, MGLpixel((alpha*red2)+(beta*red1)));
+				MGL_SET_GREEN(color, MGLpixel((alpha*green2)+(beta*green1)));
+				//cout << " The calculated color = " << color << endl;
 				if(depth1 == depth2)
 				{
 					depth = depth1;
@@ -661,9 +681,9 @@ void draw_line(MGLpixel pixelColor1,MGLpixel pixelColor2, int x0, int y0, int x1
 				
 				alpha = (distancei(x0, y0, x1, y)/distance);
 				beta = 1 - alpha;			
-				color = MGL_SET_BLUE(color, MGLpixel((alpha*blue2)+(beta*blue1)));
-				color = MGL_SET_RED(color, MGLpixel((alpha*red2)+(beta*red1)));
-				color = MGL_SET_GREEN(color, MGLpixel((alpha*green2)+(beta*green1)));
+				MGL_SET_BLUE(color, MGLpixel((alpha*blue2)+(beta*blue1)));
+				MGL_SET_RED(color, MGLpixel((alpha*red2)+(beta*red1)));
+				MGL_SET_GREEN(color, MGLpixel((alpha*green2)+(beta*green1)));
 				if(depth1 == depth2)
 				{
 					depth = depth1;
@@ -694,9 +714,9 @@ void draw_line(MGLpixel pixelColor1,MGLpixel pixelColor2, int x0, int y0, int x1
 				
 				//cout << "alpha -> " << alpha << " beta -> " << beta << "\n";		
 				
-				color = MGL_SET_BLUE(color, MGLpixel((alpha*blue2)+(beta*blue1)));
-				color = MGL_SET_RED(color, MGLpixel((alpha*red2)+(beta*red1)));
-				color = MGL_SET_GREEN(color, MGLpixel((alpha*green2)+(beta*green1)));
+				MGL_SET_BLUE(color, MGLpixel((alpha*blue2)+(beta*blue1)));
+				MGL_SET_RED(color, MGLpixel((alpha*red2)+(beta*red1)));
+				MGL_SET_GREEN(color, MGLpixel((alpha*green2)+(beta*green1)));
 				if(depth1 == depth2)
 					depth = depth1;
 				else
@@ -716,9 +736,9 @@ void draw_line(MGLpixel pixelColor1,MGLpixel pixelColor2, int x0, int y0, int x1
 							alpha = (distancei(x0, y0, ((y-b)/m),y)/distance);
 							beta = 1 - alpha;			
 						
-							color = MGL_SET_BLUE(color, MGLpixel((alpha*blue2)+(beta*blue1)));
-							color = MGL_SET_RED(color, MGLpixel((alpha*red2)+(beta*red1)));
-							color = MGL_SET_GREEN(color, MGLpixel((alpha*green2)+(beta*green1)));
+							MGL_SET_BLUE(color, MGLpixel((alpha*blue2)+(beta*blue1)));
+							MGL_SET_RED(color, MGLpixel((alpha*red2)+(beta*red1)));
+							MGL_SET_GREEN(color, MGLpixel((alpha*green2)+(beta*green1)));
 							if(depth1 == depth2)
 								depth = depth1;
 							else
@@ -735,9 +755,9 @@ void draw_line(MGLpixel pixelColor1,MGLpixel pixelColor2, int x0, int y0, int x1
 					if(m <= -1){
 						alpha = (distancei(x0, y0, ((y-b)/m),y)/distance);
 						beta = 1 - alpha;			
-						color = MGL_SET_BLUE(color, MGLpixel((alpha*blue2)+(beta*blue1)));
-						color = MGL_SET_RED(color, MGLpixel((alpha*red2)+(beta*red1)));
-						color = MGL_SET_GREEN(color, MGLpixel((alpha*green2)+(beta*green1)));
+						MGL_SET_BLUE(color, MGLpixel((alpha*blue2)+(beta*blue1)));
+						MGL_SET_RED(color, MGLpixel((alpha*red2)+(beta*red1)));
+						MGL_SET_GREEN(color, MGLpixel((alpha*green2)+(beta*green1)));
 						if(depth1 == depth2)
 							depth = depth1;
 						else
@@ -760,9 +780,9 @@ void draw_line(MGLpixel pixelColor1,MGLpixel pixelColor2, int x0, int y0, int x1
 				
 				alpha = (distancei(x0, y0, x, m*x + b)/distance);
 				beta = 1 - alpha;			
-				color = MGL_SET_BLUE(color, MGLpixel((alpha*blue2)+(beta*blue1)));
-				color = MGL_SET_RED(color, MGLpixel((alpha*red2)+(beta*red1)));
-				color = MGL_SET_GREEN(color, MGLpixel((alpha*green2)+(beta*green1)));
+				MGL_SET_BLUE(color, MGLpixel((alpha*blue2)+(beta*blue1)));
+				MGL_SET_RED(color, MGLpixel((alpha*red2)+(beta*red1)));
+				MGL_SET_GREEN(color, MGLpixel((alpha*green2)+(beta*green1)));
 				if(depth1 == depth2)
 					depth = depth1;
 				else
@@ -777,9 +797,9 @@ void draw_line(MGLpixel pixelColor1,MGLpixel pixelColor2, int x0, int y0, int x1
 				
 				alpha = (distancei(x0, y0, ((y-b)/m), y)/distance);
 				beta = 1 - alpha;			
-				color = MGL_SET_BLUE(color, MGLpixel((alpha*blue2)+(beta*blue1)));
-				color = MGL_SET_RED(color, MGLpixel((alpha*red2)+(beta*red1)));
-				color = MGL_SET_GREEN(color, MGLpixel((alpha*green2)+(beta*green1)));
+				MGL_SET_BLUE(color, MGLpixel((alpha*blue2)+(beta*blue1)));
+				MGL_SET_RED(color, MGLpixel((alpha*red2)+(beta*red1)));
+				MGL_SET_GREEN(color, MGLpixel((alpha*green2)+(beta*green1)));
 				if(depth1 == depth2)
 					depth = depth1;
 				else
@@ -794,9 +814,9 @@ void draw_line(MGLpixel pixelColor1,MGLpixel pixelColor2, int x0, int y0, int x1
                 for(int y = y0; y > y1; --y){
 					alpha = (distancei(x0, y0, ((y-b)/m), y)/distance);
 				beta = 1 - alpha;			
-				color = MGL_SET_BLUE(color, MGLpixel((alpha*blue2)+(beta*blue1)));
-				color = MGL_SET_RED(color, MGLpixel((alpha*red2)+(beta*red1)));
-				color = MGL_SET_GREEN(color, MGLpixel((alpha*green2)+(beta*green1)));
+				MGL_SET_BLUE(color, MGLpixel((alpha*blue2)+(beta*blue1)));
+				MGL_SET_RED(color, MGLpixel((alpha*red2)+(beta*red1)));
+				MGL_SET_GREEN(color, MGLpixel((alpha*green2)+(beta*green1)));
 				if(depth1 == depth2)
 					depth = depth1;
 				else
@@ -836,14 +856,40 @@ void mglVertex3(MGLfloat x,
 {
 	
 	if(!mHasBegun)MGL_ERROR("mglBegin must be called first");
-	GLVertex vertex;
+	
+	switch(VIEW_STATE){
+		case MGL_MODELVIEW:{	
+			mModelViewStack[mModelViewTracker] = mCurrentMatrix;			
+			break;
+		}
+		case MGL_PROJECTION:{
+			 mProjectionStack[mProjectionTracker] = mCurrentMatrix;
+			break;
+		}
+	}
+	GLVertex vertex; // create the gl coordinate vertex
 	vertex.X = x;
 	vertex.Y = y;
 	vertex.Z = z;
 	vertex.W = 1;
 	vertex.mPixelColor = mColor;
 	//cout << vertex.X << " " << vertex.Y  << " " <<  vertex.Z << endl;
-	mVertices.push_back(vertex);
+	// we need to transform the vertecies without the final viewport
+	MGLMatrix model = mModelViewStack[mModelViewTracker];
+	MGLMatrix proj = mProjectionStack[mProjectionTracker];
+	// Check our matrices for an easy one
+	//cout << "=======Projection matrix\n";
+	//mProjectionStack[mProjectionTracker].seeMatrix();
+	//cout << "=======Modelveiw matrix\n";
+	//mModelViewStack[mModelViewTracker].seeMatrix();
+	// next we need to take the vertex cooridinates into screen space
+	// To do this we apply the modelview and projection matrices
+	//model.MultiplyMatrix();		
+	MGLMatrix screenMatrix = model.MultiplyMatrix(proj);
+
+
+	// transform by multiply the vertex and the matrix
+	mVertices.push_back(screenMatrix.MultVertex(vertex));
 		
 }
 
@@ -1016,7 +1062,6 @@ void mglScale(MGLfloat x,
               MGLfloat y,
               MGLfloat z)
 {
-	
 	mCurrentMatrix.ScaleMatrix(x,y,z);
 }
 
