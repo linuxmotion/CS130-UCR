@@ -15,13 +15,6 @@
 using namespace std;
 #define PI 3.14159265
 
-struct ColorRGB{
-	MGLbyte r;
-	MGLbyte g;
-	MGLbyte b;
-	
-}mColorRGB;
-
 struct GLVertex{
 	MGLfloat X;
 	MGLfloat Y;
@@ -549,19 +542,6 @@ void mglEnd()
 			return;
 	}
 	
-	// Wee need to save the changes to our matrix before we do multiplication
-	switch(VIEW_STATE){
-		case MGL_MODELVIEW:{	
-			mModelViewStack[mModelViewTracker] = mCurrentMatrix;			
-			break;
-		}
-		case MGL_PROJECTION:{
-			 mProjectionStack[mProjectionTracker] = mCurrentMatrix;
-			break;
-		}
-	}
-
-
 	//cout << "========Screen matrix\n";
 	//screenMatrix.seeMatrix();
 	
@@ -1136,12 +1116,7 @@ void mglColor(MGLbyte red,
     MGL_SET_RED(mColor,red);
     MGL_SET_GREEN(mColor,green);
     MGL_SET_BLUE(mColor,blue);
-	
-	mColorRGB.b = blue;
-	mColorRGB.r = red;
-	mColorRGB.g = green;
-	
-	
+
 	
 	// cout << "color r = " << MGL_GET_RED(mColor) << " g = " << MGL_GET_GREEN(mColor) <<
 	//						 " blue = " <<  MGL_GET_BLUE(mColor) <<  " \n";

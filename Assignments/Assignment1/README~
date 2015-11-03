@@ -2,11 +2,17 @@
 #
 # John Weyrauch
 #
-# Passes tests 1-6
-# Rasterize fill-in triangles/quads - Rasterizes wireframe of triangles/quads
-# Color interpolation is done on the line segments and fill-in
-# Z-buffering is done as well
-# does not do geometric clipping, does viewport clipping in setPixels
+# Passes tests 1-4, and 6
+# Fails test 5, with object not in correct perspective and painters algorithm
+# Object is rendered for test 5, just incorrectly
+# Does not rasterize triangles/quads - Rasterizes wireframe of triangles/quads
+# Color interpolation is done on the line segments
+#
+# Tried to have triangle rasterize but would only fill in half the pixels
+# or the triangles were backwards
+#
+# Tried to triangulate qauds, but wanted to re-verticize my vertex vector
+# and pass the new vertices to rendeTriangles
 #################################
 
 // Vertex structure
