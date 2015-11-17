@@ -40,6 +40,10 @@ Pixel Pixel_Color(const Vector_3D<double>& color)
     SET_BLUE(pixel,(unsigned char)(min(color.z,1.0)*255));
     return pixel;
 }
+//----------------------------------------------------------------------
+// Color models
+//----------------------------------------------------------------------
+
 //--------------------------------------------------------------------------------
 // Shader
 //--------------------------------------------------------------------------------
@@ -47,8 +51,44 @@ Vector_3D<double> Phong_Shader::
 Shade_Surface(const Ray& ray,const Object& intersection_object,const Vector_3D<double>& intersection_point,const Vector_3D<double>& same_side_normal) const
 {
     Vector_3D<double> color;
+    
 
-    // TODO: determine the color
+	color = this->color_ambient;//*emitted;
+	// determine the coloring from each light
+	// it is the sum of all light sources
+	for(unsigned int i = 0; i < 1; i++){
+		// TODO: determine the color
+		Light *light = this->world.lights[i];
+		Vector_3D<double> emitted = light->Emitted_Light(ray);
+		
+		
+		Vector_3D<double> lightPosition = light->position;
+		Vector_3D<double> lightRay = intersection_point-lightPosition;
+		Vector_3D<double> gazeRay = ray.direction*-1;
+		lightRay.Normalize();
+		LOG(lightRay)
+		double normaldotLight = Vector_3D<double>::Dot_Product(lightRay, same_side_normal);
+		double maximum = (0 <= normaldotLight) ? normaldotLight : 0;
+    	
+		color.x += emitted.x*color_diffuse.x*maximum;
+		color.y += emitted.y*color_diffuse.y*maximum;
+		color.z += emitted.z*color_diffuse.z*maximum;
+				
+		Vector_3D<double> half = gazeRay + lightRay;
+		
+		half.Normalize();
+		
+		double NdotHalf = Vector_3D<double>::Dot_Product(same_side_normal,half);
+		NdotHalf  = pow(NdotHalf, this->specular_power);
+		maximum = (0 < NdotHalf) ? NdotHalf : 0;
+		color.x += emitted.x*color_specular.x*maximum;
+		color.y += emitted.y*color_specular.y*maximum;
+		color.z += emitted.z*color_specular.z*maximum;
+		
+	}
+	//color = color*(1/this->world.lights.size());
+    
+				
 	
     return color;
 }
@@ -91,10 +131,11 @@ Intersection(Ray& ray) const
 			Vector_3D<double> cameraSphere = cameraPos - spherePosition; // (e-c)
 			
 			
-			LOG( cameraPos )
-			LOG( direction )
-			LOG( spherePosition )		
-			LOG( cameraSphere )
+			//LOG( cameraPos )
+			//LOG( direction )
+			//LOG( spherePosition )		
+			
+			//LOG( cameraSphere )
 			
 			double raydotcamSphere = Vector_3D<double>::Dot_Product(direction,cameraSphere); //(d·(e − c))
 			double raydotray = Vector_3D<double>::Dot_Product(direction,direction); 				//(d·d)
@@ -151,6 +192,7 @@ Normal(const Vector_3D<double>& location) const
 	// where P is the point of intersection and C is the center 
 	// of the sphere
     normal =  (location - center)*(1/radius);
+    //normal.Normalize();
     return normal;
 }
 
@@ -171,26 +213,21 @@ Intersection(Ray& ray) const
     if(ldotn > Object::small_t ){
 		//LOG("We have a potential plane hit")
 		//LOG(x1)
-		//LOG(ray.endpoint)
-		
-		
-		Vector_3D<double> planeRayPoint = ray.endpoint - x1;
-		double numer =  Vector_3D<double>::Dot_Product(planeRayPoint, this->normal);
+		//LOG(ray.endpoint)	
+		Vector_3D<double> planeRayPoint = x1 - ray.endpoint ;
+		double numer =  Vector_3D<double>::Dot_Product(this->normal, planeRayPoint);
 		//LOG("Ray plane dot product:" << numer)
-		double hitPoint = numer/ldotn;
+		double hitPoint = -numer/ldotn;
 		//LOG(hitPoint)
-		if(hitPoint >= 0){
+		if(hitPoint >= small_t){
 			//LOG("We have a planar intersection\n");
 			ray.t_max = hitPoint; // Set our T value
 			ray.semi_infinite = false; 	 // Indicate theat we stop at T
 			ray.current_object = this;   // And that the object hit was this plane
 			
 			return true;
-		}
-	
-	}
-    
-    
+		}	
+	} 
     return false;
 }
 
@@ -232,9 +269,9 @@ World_Position(const Vector_2D<int>& pixel_index)
 									
 	// We know have a position on our image plane defined from our camera
     Vector_3D<double> result = imagePlanePosition;	
-    LOG("u :" << u)
-	LOG("v :" << v)
-   // LOG("position    :" << this->position)// camera position 
+    //LOG("u :" << u)
+	//LOG("v :" << v)
+    //LOG("position    :" << this->position)// camera position 
 	//LOG("focal point :" << this->focal_point)// where the image plane is located
 	//LOG("look vector :" << this->look_vector)// points from the position to the focal point - normalized
 	//LOG("vertical    :" << this->vertical_vector) // point up in the image plane - normalized
@@ -258,7 +295,7 @@ Closest_Intersection(Ray& ray)
     // TODO
     // Itterate over all the scene object to see if a hit 
    const Object* closest_intersection = 0;
-    int intersectionIndex = -1;
+    //int intersectionIndex = -1;
     Ray tempRay = ray;
 
     for(int i = 0; i < this->objects.size(); i++){
@@ -299,7 +336,7 @@ Render_Pixel(const Vector_2D<int>& pixel_index)
 	// find the direction
 	ray.direction = this->camera.position - this->camera.World_Position(pixel_index);	
 	// compute the normalized direction
-	ray.direction = ray.direction*(1/Vector_3D<double>::Dot_Product(ray.direction, ray.direction));
+	ray.direction.Normalize();// = ray.direction*(1/sqrt(Vector_3D<double>::Dot_Product(ray.direction, ray.direction)));
 	ray.t_max = FLT_MAX;
 	
     Ray dummy_root;
@@ -322,6 +359,15 @@ Cast_Ray(Ray& ray,const Ray& parent_ray)
 	//LOG("Testing the object, then determine color if exists")
 	if(closest != NULL){
 		//LOG("We found an intersection object")
+		// By using the T value we can find the point of intersection
+		// intersection = (cameraPos + closestHitpoint*ray);
+		Vector_3D<double> intersection_point = ray.endpoint + ray.direction*ray.t_max;
+		// Once we know the point of intersection we can find the normal to this point
+		Vector_3D<double> same_side_normal = closest->Normal(intersection_point);
+		same_side_normal.Normalize();
+		color = closest->material_shader->Shade_Surface(ray,*closest,intersection_point,same_side_normal);
+		
+		
 		// should we do a recursive ray trace
 		if(recursionDepth < recursion_depth_limit){
 			recursionDepth++;
@@ -329,18 +375,8 @@ Cast_Ray(Ray& ray,const Ray& parent_ray)
 			// listing our current ray as the parent
 			//Cast_Ray(new ray, parent);
 		}
-		
-		// By using the T value we can find the point of intersection
-		Vector_3D<double> intersection_point;
-		// Once we know the point of intersection we can find the normal to this point
-		Vector_3D<double> same_side_normal;
-		color = closest->material_shader->Shade_Surface(ray,*closest,intersection_point,same_side_normal);
-		//LOG(color)
-		//STOP();
+
 	}
 	
-	// if not
-	// determine the color here of the hit object
-	//color.x = 1;
     return color;
 }
