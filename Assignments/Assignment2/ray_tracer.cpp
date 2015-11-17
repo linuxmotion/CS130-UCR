@@ -13,7 +13,7 @@
 #ifdef DEBUG
 #include <iostream>
 #define LOG(MESSAGE) cout << "LOGGING: " << __FILE__ << ": " << __LINE__ <<  ": "  << MESSAGE << endl;
-#define STOP() cin.get();
+#define STOP()  // cin.get();
 #else
 #define LOG(MESSAGE)
 #define STOP() 
@@ -107,7 +107,8 @@ Intersection(Ray& ray) const
 			//// if the discriminant is greater than or equal to zero we know that 
 			//// we have a point on the sphere
 			double closestHitpoint  = 0;
-			if(discriminant >= 0){
+			if(discriminant >= -0.0005){
+				
 				LOG("We found a point on the sphere! Oh yeah")
 				double hitPoints[2];
 				// lets find the point of intersection
@@ -153,6 +154,7 @@ Normal(const Vector_3D<double>& location) const
     return normal;
 }
 
+
 // determine if the ray intersects with the sphere
 // if there is an intersection, set t_max, current_object, and semi_infinite as appropriate and return true
 bool Plane::
@@ -165,19 +167,20 @@ Intersection(Ray& ray) const
     // l is the direction of the ray
     //t=(p0−l0)⋅n/l⋅n
     
-    double ldotn = Vector_3D<double>::Dot_Product(this->normal, ray.direction);
+    double ldotn = Vector_3D<double>::Dot_Product(ray.direction,this->normal);
     if(ldotn > Object::small_t ){
-		LOG("We have a potentail plane hit")
-		LOG(x1)
-		LOG(ray.endpoint)
+		//LOG("We have a potential plane hit")
+		//LOG(x1)
+		//LOG(ray.endpoint)
 		
 		
-		Vector_3D<double> planeRayPoint = x1 - ray.endpoint;
+		Vector_3D<double> planeRayPoint = ray.endpoint - x1;
 		double numer =  Vector_3D<double>::Dot_Product(planeRayPoint, this->normal);
+		//LOG("Ray plane dot product:" << numer)
 		double hitPoint = numer/ldotn;
-		LOG(hitPoint)
+		//LOG(hitPoint)
 		if(hitPoint >= 0){
-			LOG("We have a planar intersection\n");
+			//LOG("We have a planar intersection\n");
 			ray.t_max = hitPoint; // Set our T value
 			ray.semi_infinite = false; 	 // Indicate theat we stop at T
 			ray.current_object = this;   // And that the object hit was this plane
@@ -211,11 +214,11 @@ World_Position(const Vector_2D<int>& pixel_index)
 	double top = HEIGHT/2;
 	double bottom = -top;
 	
-	Vector_3D<double> pixelgridCenter = this->film.focal_point;
-	double u = (left +((right-left)*(pixel_index.x + 0.5)))/WIDTH;
-	double v = (bottom +(top-bottom)*(pixel_index.y + 0.5))/HEIGHT;
-	LOG(u)
-	LOG(v)
+	//Vector_3D<double> pixelgridCenter = this->film.focal_point;
+	double u = left   + ((right-left)*(pixel_index.x + 0.5))/WIDTH;
+	double v = bottom + ((top-bottom)*(pixel_index.y + 0.5))/HEIGHT;
+	
+	
 	// A pixel on the image plane (ip) is therefore 
 	// ip = e + d + uU + vV
 	// where e is the camera origin
@@ -224,16 +227,21 @@ World_Position(const Vector_2D<int>& pixel_index)
 	// V is the right vecotor on the image plane
 	Vector_3D<double> imagePlanePosition = 
 									this->focal_point + 
-									this->vertical_vector*u +
-									this->horizontal_vector*v;
+									this->vertical_vector*this->film.pixel_grid.dy*v +
+									this->horizontal_vector*this->film.pixel_grid.dx*u;
+									
 	// We know have a position on our image plane defined from our camera
     Vector_3D<double> result = imagePlanePosition;	
-    LOG(this->position)// camera position 
-	LOG(this->focal_point)// where the image plane is located
-	LOG(this->look_vector)// points from the position to the focal point - normalized
-	LOG(this->vertical_vector) // point up in the image plane - normalized
-	LOG(this->horizontal_vector)// points to the right on the image plane - normalized
-	LOG(result)
+    LOG("u :" << u)
+	LOG("v :" << v)
+   // LOG("position    :" << this->position)// camera position 
+	//LOG("focal point :" << this->focal_point)// where the image plane is located
+	//LOG("look vector :" << this->look_vector)// points from the position to the focal point - normalized
+	//LOG("vertical    :" << this->vertical_vector) // point up in the image plane - normalized
+	//LOG("horizontal  :" << this->horizontal_vector)// points to the right on the image plane - normalized
+	//LOG("vertical*v  :" << this->vertical_vector*v)
+	//LOG("horizontal*u:" << this->horizontal_vector*u)
+	//LOG(result)
     STOP();
     
     return result;
@@ -255,13 +263,14 @@ Closest_Intersection(Ray& ray)
 
     for(int i = 0; i < this->objects.size(); i++){
 		
-		if(this->objects[0]->Intersection(tempRay) == true){
-			LOG("An intersection has been found")
+		if(this->objects[i]->Intersection(tempRay) == true){
+			
+			//LOG("An intersection has been found")
 			// Check our dummy variable to see if
 			// we have a closer intersection than we currently have
 			
 			if(tempRay.t_max < ray.t_max){
-				LOG("A new closer intersection has been found")
+				//LOG("A new closer intersection has been found")
 					// set the closest object
 					ray.current_object = tempRay.current_object;
 					// set the t value for that object hit
@@ -310,9 +319,9 @@ Cast_Ray(Ray& ray,const Ray& parent_ray)
 	// find the closest object in the seen for this view ray
 	const Object *closest = Closest_Intersection(ray);
 	// if an object has been hit, it is the closest
-	LOG("Testing the object, then determine color if exists")
+	//LOG("Testing the object, then determine color if exists")
 	if(closest != NULL){
-		LOG("We found an intersection object")
+		//LOG("We found an intersection object")
 		// should we do a recursive ray trace
 		if(recursionDepth < recursion_depth_limit){
 			recursionDepth++;
@@ -326,7 +335,7 @@ Cast_Ray(Ray& ray,const Ray& parent_ray)
 		// Once we know the point of intersection we can find the normal to this point
 		Vector_3D<double> same_side_normal;
 		color = closest->material_shader->Shade_Surface(ray,*closest,intersection_point,same_side_normal);
-		LOG(color)
+		//LOG(color)
 		//STOP();
 	}
 	
