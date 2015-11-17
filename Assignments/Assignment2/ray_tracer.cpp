@@ -43,7 +43,86 @@ Pixel Pixel_Color(const Vector_3D<double>& color)
 //----------------------------------------------------------------------
 // Color models
 //----------------------------------------------------------------------
-
+// Lambertian model
+//Ld = kd I max(0, n · l)
+Vector_3D<double> Lambertian_shading(const Ray& ray,
+									 const Light* light,
+									 const Vector_3D<double>& color_diffuse,
+									 const Vector_3D<double>& intersection_point,
+									 const Vector_3D<double>& same_side_normal){
+	
+	LOG("calculating lambertian color")
+	
+	LOG(color_diffuse)
+	LOG(intersection_point)
+	LOG(same_side_normal)
+		Vector_3D<double> color;
+		//Vector_3D<double> gazeRay = ray.direction;
+		Vector_3D<double> lightPosition = light->position;
+		LOG(lightPosition)
+		Vector_3D<double> lightRay = intersection_point - lightPosition;
+		lightRay.Normalize();
+		
+		LOG(lightRay)
+		double normaldotLight = Vector_3D<double>::Dot_Product(lightRay, same_side_normal);
+		double maximum = (0 >= normaldotLight) ? 0 : normaldotLight;
+    	Vector_3D<double> emittedLight = light->Emitted_Light(ray);
+    	LOG(maximum)
+    	LOG(emittedLight)
+		//color.x += emittedLight.x*color_diffuse.x*maximum;
+		//color.y += emittedLight.y*color_diffuse.y*maximum;
+		//color.z += emittedLight.z*color_diffuse.z*maximum;
+		
+		color.x += 1*color_diffuse.x*maximum;
+		color.y += 1*color_diffuse.y*maximum;
+		color.z += 1*color_diffuse.z*maximum;
+		LOG(color)
+		
+		return color;
+	}
+	
+// specular model
+//Ls = ks I max(0, n · h) p ,
+Vector_3D<double> Specular_shading(const Ray& ray,
+									 const Light* light,
+									 const Vector_3D<double>& color_specular,
+									 const Vector_3D<double>& intersection_point,
+									 const Vector_3D<double>& same_side_normal, 
+									 const double specular_power){
+	
+	LOG("calculating specular color")
+	
+	LOG(color_specular)
+	LOG(intersection_point)
+	LOG(same_side_normal)
+	Vector_3D<double> color;
+	Vector_3D<double> gazeRay = ray.direction*-1;
+	Vector_3D<double> lightPosition = light->position;
+	Vector_3D<double> lightRay = lightPosition-intersection_point;
+	lightRay.Normalize();
+	
+	
+	
+	LOG(lightRay)
+	Vector_3D<double> emittedLight = light->Emitted_Light(ray);
+	//LOG(maximum)
+	LOG(emittedLight)
+	Vector_3D<double> half = gazeRay + lightRay;
+	
+	half.Normalize();
+	
+	
+	double NdotHalf = Vector_3D<double>::Dot_Product(same_side_normal,half);
+	//NdotHalf  = pow(NdotHalf, specular_power);
+	double maximum = (0 < NdotHalf) ? NdotHalf : 0;
+	maximum = pow(maximum, specular_power);
+	LOG("max: " << maximum)
+	color.x += emittedLight.x*color_specular.x*maximum;
+	color.y += emittedLight.y*color_specular.y*maximum;
+	color.z += emittedLight.z*color_specular.z*maximum;
+	LOG(color)
+	return color;
+}
 //--------------------------------------------------------------------------------
 // Shader
 //--------------------------------------------------------------------------------
@@ -56,36 +135,46 @@ Shade_Surface(const Ray& ray,const Object& intersection_object,const Vector_3D<d
 	color = this->color_ambient;//*emitted;
 	// determine the coloring from each light
 	// it is the sum of all light sources
-	for(unsigned int i = 0; i < 1; i++){
-		// TODO: determine the color
-		Light *light = this->world.lights[i];
-		Vector_3D<double> emitted = light->Emitted_Light(ray);
+    
+	//for(unsigned int i = 0; i < 1/*this->world.lights.size()*/; i++){
+		//// TODO: determine the color
+		Light *light = this->world.lights[0];
+		//Vector_3D<double> emitted = light->Emitted_Light(ray);
+
+		//Vector_3D<double> lightPosition = light->position;
+		//Vector_3D<double> lightRay = intersection_point-lightPosition;
+		//Vector_3D<double> gazeRay = ray.direction;
+		//lightRay.Normalize();
+		
+		////LOG(lightRay)
+		//double normaldotLight = Vector_3D<double>::Dot_Product(lightRay, same_side_normal);
+		//double maximum = (0 <= normaldotLight) ? normaldotLight : 0;
+    	//Vector_3D<double> emittedLight = light->Emitted_Light(ray);
+    	////LOG(maximum)
+    	////LOG(emittedLight)
+		////color.x += emittedLight.x*color_diffuse.x*maximum;
+		////color.y += emittedLight.y*color_diffuse.y*maximum;
+		////color.z += emittedLight.z*color_diffuse.z*maximum;
+		////LOG(color)
+		//Vector_3D<double> half = gazeRay + lightRay;
+		
+		//half.Normalize();
+		
+		//double NdotHalf = Vector_3D<double>::Dot_Product(same_side_normal,half);
+		//NdotHalf  = pow(NdotHalf, this->specular_power);
+		//maximum = (0 < NdotHalf) ? NdotHalf : 0;
+		////color.x += emitted.x*color_specular.x*maximum;
+		////color.y += emitted.y*color_specular.y*maximum;
+		////color.z += emitted.z*color_specular.z*maximum;	
+		Vector_3D<double> color_lambert = Lambertian_shading(ray, light, this->color_diffuse, intersection_point, same_side_normal);
+		color += color_lambert;
+		
+		//Vector_3D<double> color_specular = Specular_shading(ray, light, this->color_specular, intersection_point, same_side_normal, this->specular_power);		
+		//color += color_specular;				
 		
 		
-		Vector_3D<double> lightPosition = light->position;
-		Vector_3D<double> lightRay = intersection_point-lightPosition;
-		Vector_3D<double> gazeRay = ray.direction*-1;
-		lightRay.Normalize();
-		LOG(lightRay)
-		double normaldotLight = Vector_3D<double>::Dot_Product(lightRay, same_side_normal);
-		double maximum = (0 <= normaldotLight) ? normaldotLight : 0;
-    	
-		color.x += emitted.x*color_diffuse.x*maximum;
-		color.y += emitted.y*color_diffuse.y*maximum;
-		color.z += emitted.z*color_diffuse.z*maximum;
-				
-		Vector_3D<double> half = gazeRay + lightRay;
 		
-		half.Normalize();
-		
-		double NdotHalf = Vector_3D<double>::Dot_Product(same_side_normal,half);
-		NdotHalf  = pow(NdotHalf, this->specular_power);
-		maximum = (0 < NdotHalf) ? NdotHalf : 0;
-		color.x += emitted.x*color_specular.x*maximum;
-		color.y += emitted.y*color_specular.y*maximum;
-		color.z += emitted.z*color_specular.z*maximum;
-		
-	}
+	//}
 	//color = color*(1/this->world.lights.size());
     
 				
@@ -118,66 +207,76 @@ Shade_Surface(const Ray& ray,const Object& intersection_object,const Vector_3D<d
 bool Sphere::
 Intersection(Ray& ray) const
 {
-			LOG("Finding a sphere intersection")
-			// now we can have a vector in the form camera+(t*ray)
-			// we need to find the intersection if any such that t > 0 
-			// and we have a point on our sphere if the following equation is 
-			// satisfied, where d is our ray through the pixel, e is the camera
-			// and c is the center of the sphere
-			// (d · d)t 2 + 2*d·(e − c)t + (e − c)·(e − c) − R^2 = 0.
-			Vector_3D<double> cameraPos = ray.endpoint;
-			Vector_3D<double> spherePosition = this->center;
-			Vector_3D<double> direction = ray.direction;
-			Vector_3D<double> cameraSphere = cameraPos - spherePosition; // (e-c)
+	//LOG("Finding a sphere intersection")
+	// now we can have a vector in the form camera+(t*ray)
+	// we need to find the intersection if any such that t > 0 
+	// and we have a point on our sphere if the following equation is 
+	// satisfied, where d is our ray through the pixel, e is the camera
+	// and c is the center of the sphere
+	// (d · d)t 2 + 2*d·(e − c)t + (e − c)·(e − c) − R^2 = 0.
+	Vector_3D<double> cameraPos = ray.endpoint;
+	Vector_3D<double> spherePosition = this->center;
+	Vector_3D<double> direction = ray.direction;
+	Vector_3D<double> cameraSphere = cameraPos - spherePosition; // (e-c)
+	
+	
+	//LOG( cameraPos )
+	//LOG( direction )
+	//LOG( spherePosition )		
+	
+	//LOG( cameraSphere )
+	
+	double raydotcamSphere = Vector_3D<double>::Dot_Product(direction,cameraSphere); //(d·(e − c))
+	double raydotray = Vector_3D<double>::Dot_Product(direction,direction); 				//(d·d)
+	// than t = −d · (e − c) ± sqrt((d · (e − c))^2 − (d · d) ((e − c) · (e − c) − R^2 ))
+	//	 divided by (d · d)
+	// so 
+	double discriminant = (sqr(raydotcamSphere) - raydotray*(Vector_3D<double>::Dot_Product(cameraSphere,cameraSphere) - sqr(this->radius)));
+	
+	//LOG(discriminant)
+	//// if the discriminant is greater than or equal to zero we know that 
+	//// we have a point on the sphere
+	double closestHitpoint  = 0;
+	if(discriminant >= 0){
+		
+		
+		//LOG("We found a point on the sphere! Oh yeah")
+		double hitPoints[2];
+		// lets find the point of intersection
+		//  t = −d · (e − c) ± sqrt((d · (e − c))^2 − (d · d) ((e − c) · (e − c) − R 2 ))
+		//	 divided by (d · d)
+		if(discriminant == 0){
+			// we have one point of intersction
+			hitPoints[0] = (raydotcamSphere)/raydotray;
+			closestHitpoint = hitPoints[0];
+		}else if(discriminant > 0){
+			// we have two points of intersection
+			// we want the closest one
+			hitPoints[0] = (raydotcamSphere + sqrt(discriminant))/raydotray;
+			hitPoints[1] = (raydotcamSphere - sqrt(discriminant))/raydotray;	
+			if((hitPoints[0] > 0) && (hitPoints[1] > 0))
+				closestHitpoint = (hitPoints[0] <  hitPoints[1]) ? hitPoints[0]:hitPoints[1];					
+			if((hitPoints[0] > 0) && (hitPoints[1] < 0))
+				closestHitpoint = hitPoints[0];	
+			if((hitPoints[0] < 0) && (hitPoints[1] > 0))
+				closestHitpoint = hitPoints[1];	
+			// Now that we have the point of intersection
 			
-			
-			//LOG( cameraPos )
-			//LOG( direction )
-			//LOG( spherePosition )		
-			
-			//LOG( cameraSphere )
-			
-			double raydotcamSphere = Vector_3D<double>::Dot_Product(direction,cameraSphere); //(d·(e − c))
-			double raydotray = Vector_3D<double>::Dot_Product(direction,direction); 				//(d·d)
-			// than t = −d · (e − c) ± sqrt((d · (e − c))^2 − (d · d) ((e − c) · (e − c) − R 2 ))
-			//	 divided by (d · d)
-			// so 
-			double discriminant = ((raydotcamSphere*raydotcamSphere) - raydotray*(Vector_3D<double>::Dot_Product(cameraSphere,cameraSphere) - this->radius*this->radius));
-			
-			LOG(discriminant)
-			//// if the discriminant is greater than or equal to zero we know that 
-			//// we have a point on the sphere
-			double closestHitpoint  = 0;
-			if(discriminant >= -0.0005){
-				
-				LOG("We found a point on the sphere! Oh yeah")
-				double hitPoints[2];
-				// lets find the point of intersection
-				//  t = −d · (e − c) ± sqrt((d · (e − c))^2 − (d · d) ((e − c) · (e − c) − R 2 ))
-				//	 divided by (d · d)
-				if(discriminant == 0){
-					// we have one point of intersction
-					hitPoints[0] = (-raydotcamSphere)/raydotray;
-					closestHitpoint = hitPoints[0];
-				}else if(discriminant > 0){
-					// we have two points of intersection
-					// we want the closest one
-					hitPoints[0] = (-raydotcamSphere + sqrt(discriminant))/raydotray;
-					hitPoints[1] = (-raydotcamSphere - sqrt(discriminant))/raydotray;					
-					closestHitpoint = (hitPoints[0] <  hitPoints[1]) ? hitPoints[0]:hitPoints[1];
-					// Now that we have the point of intersection
-					
-				}
-				
-				ray.t_max = closestHitpoint; // Set our T value
-				ray.semi_infinite = false; 	 // Indicate theat we stop at T
-				ray.current_object = this;   // And that the object hit was this sphere
-				
-				//STOP()
-				return true;
-				
-			
-			}
+		}
+		//LOG(raydotcamSphere)
+		//LOG(discriminant)
+		//LOG(raydotray)
+		//LOG(closestHitpoint)
+		if(closestHitpoint > small_t){
+			ray.t_max = closestHitpoint; // Set our T value
+			ray.semi_infinite = false; 	 // Indicate theat we stop at T
+			ray.current_object = this;   // And that the object hit was this sphere
+		
+			//STOP()
+			return true;
+		}
+	
+	}
 	//STOP()
     return false;
 }
@@ -219,7 +318,7 @@ Intersection(Ray& ray) const
 		//LOG("Ray plane dot product:" << numer)
 		double hitPoint = -numer/ldotn;
 		//LOG(hitPoint)
-		if(hitPoint >= small_t){
+		if(hitPoint > small_t){
 			//LOG("We have a planar intersection\n");
 			ray.t_max = hitPoint; // Set our T value
 			ray.semi_infinite = false; 	 // Indicate theat we stop at T
@@ -300,7 +399,7 @@ Closest_Intersection(Ray& ray)
 
     for(int i = 0; i < this->objects.size(); i++){
 		
-		if(this->objects[i]->Intersection(tempRay) == true){
+		if(this->objects[2]->Intersection(tempRay) == true){
 			
 			//LOG("An intersection has been found")
 			// Check our dummy variable to see if
@@ -364,6 +463,7 @@ Cast_Ray(Ray& ray,const Ray& parent_ray)
 		Vector_3D<double> intersection_point = ray.endpoint + ray.direction*ray.t_max;
 		// Once we know the point of intersection we can find the normal to this point
 		Vector_3D<double> same_side_normal = closest->Normal(intersection_point);
+		//same_side_normal.z = same_side_normal.z*-1;
 		same_side_normal.Normalize();
 		color = closest->material_shader->Shade_Surface(ray,*closest,intersection_point,same_side_normal);
 		
