@@ -51,31 +51,30 @@ Vector_3D<double> Lambertian_shading(const Ray& ray,
 									 const Vector_3D<double>& intersection_point,
 									 const Vector_3D<double>& same_side_normal){
 	
-	LOG("calculating lambertian color")
+	//LOG("calculating lambertian color")
 	
-	LOG(color_diffuse)
-	LOG(intersection_point)
-	LOG(same_side_normal)
+	//LOG(color_diffuse)
+	//LOG(intersection_point)
+	//LOG(same_side_normal)
 		Vector_3D<double> color;
 		//Vector_3D<double> gazeRay = ray.direction;
 		Vector_3D<double> lightPosition = light->position;
-		LOG(lightPosition)
-		Vector_3D<double> lightRay = intersection_point - lightPosition;
+		//LOG(lightPosition)
+		Vector_3D<double> lightRay = (intersection_point - lightPosition)*-1;
 		lightRay.Normalize();
-		
-		LOG(lightRay)
+		//LOG(lightRay)
 		double normaldotLight = Vector_3D<double>::Dot_Product(lightRay, same_side_normal);
 		double maximum = (0 >= normaldotLight) ? 0 : normaldotLight;
     	Vector_3D<double> emittedLight = light->Emitted_Light(ray);
-    	LOG(maximum)
-    	LOG(emittedLight)
-		//color.x += emittedLight.x*color_diffuse.x*maximum;
-		//color.y += emittedLight.y*color_diffuse.y*maximum;
-		//color.z += emittedLight.z*color_diffuse.z*maximum;
+    	//LOG(maximum)
+    	//LOG(emittedLight)
+		color.x += emittedLight.x*color_diffuse.x*maximum;
+		color.y += emittedLight.y*color_diffuse.y*maximum;
+		color.z += emittedLight.z*color_diffuse.z*maximum;
 		
-		color.x += 1*color_diffuse.x*maximum;
-		color.y += 1*color_diffuse.y*maximum;
-		color.z += 1*color_diffuse.z*maximum;
+		//color.x += 1*color_diffuse.x*maximum;
+		//color.y += 1*color_diffuse.y*maximum;
+		//color.z += 1*color_diffuse.z*maximum;
 		LOG(color)
 		
 		return color;
@@ -129,16 +128,17 @@ Vector_3D<double> Specular_shading(const Ray& ray,
 Vector_3D<double> Phong_Shader::
 Shade_Surface(const Ray& ray,const Object& intersection_object,const Vector_3D<double>& intersection_point,const Vector_3D<double>& same_side_normal) const
 {
-    Vector_3D<double> color;
+    Vector_3D<double> color, color_am;
     
 
-	color = this->color_ambient;//*emitted;
+	color_am = this->color_ambient;//*emitted;
 	// determine the coloring from each light
 	// it is the sum of all light sources
     
-	//for(unsigned int i = 0; i < 1/*this->world.lights.size()*/; i++){
+	for(unsigned int i = 0; i < this->world.lights.size(); i++){
 		//// TODO: determine the color
-		Light *light = this->world.lights[0];
+		Light *light = this->world.lights[i];
+		color_am = color_am*light->Emitted_Light(ray);
 		//Vector_3D<double> emitted = light->Emitted_Light(ray);
 
 		//Vector_3D<double> lightPosition = light->position;
@@ -169,13 +169,14 @@ Shade_Surface(const Ray& ray,const Object& intersection_object,const Vector_3D<d
 		Vector_3D<double> color_lambert = Lambertian_shading(ray, light, this->color_diffuse, intersection_point, same_side_normal);
 		color += color_lambert;
 		
-		//Vector_3D<double> color_specular = Specular_shading(ray, light, this->color_specular, intersection_point, same_side_normal, this->specular_power);		
-		//color += color_specular;				
+		Vector_3D<double> color_specular = Specular_shading(ray, light, this->color_specular, intersection_point, same_side_normal, this->specular_power);		
+		color += color_specular;				
 		
 		
 		
-	//}
-	//color = color*(1/this->world.lights.size());
+	}
+	// add blinn-phong and ambient
+	color = color + color_am*0.5;
     
 				
 	
@@ -220,20 +221,21 @@ Intersection(Ray& ray) const
 	Vector_3D<double> cameraSphere = cameraPos - spherePosition; // (e-c)
 	
 	
-	//LOG( cameraPos )
-	//LOG( direction )
-	//LOG( spherePosition )		
+	//LOG("pos" << cameraPos )
+	//LOG( "dir" << direction )
+	//LOG( "sp_pos" << spherePosition )		
 	
-	//LOG( cameraSphere )
+	//LOG( "cam sp" << cameraSphere )
 	
-	double raydotcamSphere = Vector_3D<double>::Dot_Product(direction,cameraSphere); //(d·(e − c))
+	
+	double raydotcamSphere = Vector_3D<double>::Dot_Product(direction*-1,cameraSphere); //(d·(e − c))
 	double raydotray = Vector_3D<double>::Dot_Product(direction,direction); 				//(d·d)
 	// than t = −d · (e − c) ± sqrt((d · (e − c))^2 − (d · d) ((e − c) · (e − c) − R^2 ))
 	//	 divided by (d · d)
 	// so 
 	double discriminant = (sqr(raydotcamSphere) - raydotray*(Vector_3D<double>::Dot_Product(cameraSphere,cameraSphere) - sqr(this->radius)));
 	
-	//LOG(discriminant)
+	//LOG("dis" << discriminant)
 	//// if the discriminant is greater than or equal to zero we know that 
 	//// we have a point on the sphere
 	double closestHitpoint  = 0;
@@ -271,10 +273,18 @@ Intersection(Ray& ray) const
 			ray.t_max = closestHitpoint; // Set our T value
 			ray.semi_infinite = false; 	 // Indicate theat we stop at T
 			ray.current_object = this;   // And that the object hit was this sphere
-		
+			// Check to see if theis really is a valid point for debug
+			//LOG(ray.Point(ray.t_max))
+			//Vector_3D<double> normal = this->Normal(ray.Point(ray.t_max));
+			//double test = sqr(normal.x) + sqr(normal.y) + sqr(normal.z) - 1;
+			//bool on_point = (test < small_t);
+			//LOG(on_point)
+			
+			//LOG()
 			//STOP()
 			return true;
 		}
+		
 	
 	}
 	//STOP()
@@ -308,7 +318,10 @@ Intersection(Ray& ray) const
     // l is the direction of the ray
     //t=(p0−l0)⋅n/l⋅n
     
-    double ldotn = Vector_3D<double>::Dot_Product(ray.direction,this->normal);
+    double ldotn = -Vector_3D<double>::Dot_Product(ray.direction,this->normal);
+    //LOG(ldotn)
+    
+    
     if(ldotn > Object::small_t ){
 		//LOG("We have a potential plane hit")
 		//LOG(x1)
@@ -317,7 +330,7 @@ Intersection(Ray& ray) const
 		double numer =  Vector_3D<double>::Dot_Product(this->normal, planeRayPoint);
 		//LOG("Ray plane dot product:" << numer)
 		double hitPoint = -numer/ldotn;
-		//LOG(hitPoint)
+		LOG(hitPoint)
 		if(hitPoint > small_t){
 			//LOG("We have a planar intersection\n");
 			ray.t_max = hitPoint; // Set our T value
@@ -398,8 +411,9 @@ Closest_Intersection(Ray& ray)
     Ray tempRay = ray;
 
     for(int i = 0; i < this->objects.size(); i++){
-		
-		if(this->objects[2]->Intersection(tempRay) == true){
+		//LOG("testing for an intersection")
+		if(this->objects[i]->Intersection(tempRay) == true){
+			
 			
 			//LOG("An intersection has been found")
 			// Check our dummy variable to see if
@@ -412,6 +426,9 @@ Closest_Intersection(Ray& ray)
 					// set the t value for that object hit
 					ray.t_max = tempRay.t_max  ;
 					closest_intersection = ray.current_object;
+					//LOG(ray.endpoint)
+					//LOG(ray.direction)
+					//LOG("Intersection point: " << ray.endpoint + ray.direction*ray.t_max)
 			}
 			
 		} // we should now have our ray set to the closest object
@@ -434,7 +451,7 @@ Render_Pixel(const Vector_2D<int>& pixel_index)
 	ray.endpoint = this->camera.position;// All rays start at the camera
 	// find the direction
 	ray.direction = this->camera.position - this->camera.World_Position(pixel_index);	
-	// compute the normalized direction
+	ray.direction = ray.direction*-1;
 	ray.direction.Normalize();// = ray.direction*(1/sqrt(Vector_3D<double>::Dot_Product(ray.direction, ray.direction)));
 	ray.t_max = FLT_MAX;
 	
