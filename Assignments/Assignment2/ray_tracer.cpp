@@ -13,7 +13,7 @@
 #ifdef DEBUG
 #include <iostream>
 #define LOG(MESSAGE) cout << "LOGGING: " << __FILE__ << ": " << __LINE__ <<  ": "  << MESSAGE << endl;
-#define STOP()  // cin.get();
+#define STOP()  cin.get();
 #else
 #define LOG(MESSAGE)
 #define STOP() 
@@ -75,7 +75,7 @@ Vector_3D<double> Lambertian_shading(const Ray& ray,
 		//color.x += 1*color_diffuse.x*maximum;
 		//color.y += 1*color_diffuse.y*maximum;
 		//color.z += 1*color_diffuse.z*maximum;
-		LOG(color)
+		//LOG(color)
 		
 		return color;
 	}
@@ -89,11 +89,11 @@ Vector_3D<double> Specular_shading(const Ray& ray,
 									 const Vector_3D<double>& same_side_normal, 
 									 const double specular_power){
 	
-	LOG("calculating specular color")
+	//LOG("calculating specular color")
 	
-	LOG(color_specular)
-	LOG(intersection_point)
-	LOG(same_side_normal)
+	//LOG(color_specular)
+	//LOG(intersection_point)
+	//LOG(same_side_normal)
 	Vector_3D<double> color;
 	Vector_3D<double> gazeRay = ray.direction*-1;
 	Vector_3D<double> lightPosition = light->position;
@@ -102,10 +102,10 @@ Vector_3D<double> Specular_shading(const Ray& ray,
 	
 	
 	
-	LOG(lightRay)
+	//LOG(lightRay)
 	Vector_3D<double> emittedLight = light->Emitted_Light(ray);
 	//LOG(maximum)
-	LOG(emittedLight)
+	//LOG(emittedLight)
 	Vector_3D<double> half = gazeRay + lightRay;
 	
 	half.Normalize();
@@ -115,11 +115,11 @@ Vector_3D<double> Specular_shading(const Ray& ray,
 	//NdotHalf  = pow(NdotHalf, specular_power);
 	double maximum = (0 < NdotHalf) ? NdotHalf : 0;
 	maximum = pow(maximum, specular_power);
-	LOG("max: " << maximum)
+	//LOG("max: " << maximum)
 	color.x += emittedLight.x*color_specular.x*maximum;
 	color.y += emittedLight.y*color_specular.y*maximum;
 	color.z += emittedLight.z*color_specular.z*maximum;
-	LOG(color)
+	//LOG(color)
 	return color;
 }
 //--------------------------------------------------------------------------------
@@ -136,44 +136,48 @@ Shade_Surface(const Ray& ray,const Object& intersection_object,const Vector_3D<d
 	// it is the sum of all light sources
     
 	for(unsigned int i = 0; i < this->world.lights.size(); i++){
-		//// TODO: determine the color
+		//// determine the color
 		Light *light = this->world.lights[i];
 		color_am = color_am*light->Emitted_Light(ray);
-		//Vector_3D<double> emitted = light->Emitted_Light(ray);
+		// If the point is in the light we want to add the shading models
+		// if they are not we add the backround color
+		
+		Vector_3D<double> lightPosition = light->position;
+		
+		// LOG("light" << lightPosition)
+		// LOG("p" << intersection_point)
+		 
+		 
+	    Vector_3D<double> lightDirection = (lightPosition-intersection_point);
+	    Vector_3D<double> lightSurface = intersection_point + lightDirection*Object::small_t;
+		Ray lightRay(lightSurface, lightDirection);
+	
+	  
+		
+		//LOG("l" << lightDirection)
+		//LOG("p+l'" << intersection_point + lightDirection)
+		//LOG("lr.point" << lightRay.Point(1))
 
-		//Vector_3D<double> lightPosition = light->position;
-		//Vector_3D<double> lightRay = intersection_point-lightPosition;
-		//Vector_3D<double> gazeRay = ray.direction;
-		//lightRay.Normalize();
+		bool inShadow = false;
+		for(int i = 0; i < world.objects.size(); i++)
+			if(world.objects[i]->Intersection(lightRay))
+				inShadow = true;
+
+		//const Object *closest = world.Closest_Intersection(lightRay);
+		//LOG(closest)
 		
-		////LOG(lightRay)
-		//double normaldotLight = Vector_3D<double>::Dot_Product(lightRay, same_side_normal);
-		//double maximum = (0 <= normaldotLight) ? normaldotLight : 0;
-    	//Vector_3D<double> emittedLight = light->Emitted_Light(ray);
-    	////LOG(maximum)
-    	////LOG(emittedLight)
-		////color.x += emittedLight.x*color_diffuse.x*maximum;
-		////color.y += emittedLight.y*color_diffuse.y*maximum;
-		////color.z += emittedLight.z*color_diffuse.z*maximum;
-		////LOG(color)
-		//Vector_3D<double> half = gazeRay + lightRay;
+		if(!inShadow){
+			
+			//LOG("The instersections light source was not blocked")
+			Vector_3D<double> color_lambert = Lambertian_shading(ray, light, this->color_diffuse, intersection_point, same_side_normal);
+			color += color_lambert;
 		
-		//half.Normalize();
-		
-		//double NdotHalf = Vector_3D<double>::Dot_Product(same_side_normal,half);
-		//NdotHalf  = pow(NdotHalf, this->specular_power);
-		//maximum = (0 < NdotHalf) ? NdotHalf : 0;
-		////color.x += emitted.x*color_specular.x*maximum;
-		////color.y += emitted.y*color_specular.y*maximum;
-		////color.z += emitted.z*color_specular.z*maximum;	
-		Vector_3D<double> color_lambert = Lambertian_shading(ray, light, this->color_diffuse, intersection_point, same_side_normal);
-		color += color_lambert;
-		
-		Vector_3D<double> color_specular = Specular_shading(ray, light, this->color_specular, intersection_point, same_side_normal, this->specular_power);		
-		color += color_specular;				
-		
-		
-		
+			Vector_3D<double> color_specular = Specular_shading(ray, light, this->color_specular, intersection_point, same_side_normal, this->specular_power);		
+			color += color_specular;			
+		}//else{
+		//	LOG("Intersection light source was blocked")
+		//	}
+				
 	}
 	// add blinn-phong and ambient
 	color = color + color_am*0.5;
@@ -330,7 +334,7 @@ Intersection(Ray& ray) const
 		double numer =  Vector_3D<double>::Dot_Product(this->normal, planeRayPoint);
 		//LOG("Ray plane dot product:" << numer)
 		double hitPoint = -numer/ldotn;
-		LOG(hitPoint)
+		//LOG(hitPoint)
 		if(hitPoint > small_t){
 			//LOG("We have a planar intersection\n");
 			ray.t_max = hitPoint; // Set our T value
@@ -391,7 +395,7 @@ World_Position(const Vector_2D<int>& pixel_index)
 	//LOG("vertical*v  :" << this->vertical_vector*v)
 	//LOG("horizontal*u:" << this->horizontal_vector*u)
 	//LOG(result)
-    STOP();
+   // STOP();
     
     return result;
 }
@@ -404,21 +408,17 @@ World_Position(const Vector_2D<int>& pixel_index)
 const Object* Render_World::
 Closest_Intersection(Ray& ray)
 {
-    // TODO
-    // Itterate over all the scene object to see if a hit 
+
+    // Iterate over all the scene object to see if a hit 
    const Object* closest_intersection = 0;
     //int intersectionIndex = -1;
     Ray tempRay = ray;
-
-    for(int i = 0; i < this->objects.size(); i++){
+    for(unsigned int i = 0; i < this->objects.size(); i++){
 		//LOG("testing for an intersection")
-		if(this->objects[i]->Intersection(tempRay) == true){
-			
-			
+		if(this->objects[i]->Intersection(tempRay)){						
 			//LOG("An intersection has been found")
 			// Check our dummy variable to see if
-			// we have a closer intersection than we currently have
-			
+			// we have a closer intersection than we currently have			
 			if(tempRay.t_max < ray.t_max){
 				//LOG("A new closer intersection has been found")
 					// set the closest object
@@ -429,14 +429,10 @@ Closest_Intersection(Ray& ray)
 					//LOG(ray.endpoint)
 					//LOG(ray.direction)
 					//LOG("Intersection point: " << ray.endpoint + ray.direction*ray.t_max)
-			}
-			
+			}			
 		} // we should now have our ray set to the closest object
-		  // with the appropriate t value for hitting that object
-			
-	
+		  // with the appropriate t value for hitting that object				
 	}
-	//STOP();
     // If an intersection has taken place the pointer will != 0
     return closest_intersection;
 }
@@ -493,6 +489,10 @@ Cast_Ray(Ray& ray,const Ray& parent_ray)
 			//Cast_Ray(new ray, parent);
 		}
 
+	}
+	else{
+		
+			return background_shader->Shade_Surface(ray,*closest,Vector_3D<double>(),Vector_3D<double>());
 	}
 	
     return color;
