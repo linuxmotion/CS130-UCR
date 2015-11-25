@@ -207,6 +207,7 @@ Shade_Surface(const Ray& ray,const Object& intersection_object,const Vector_3D<d
 	bounceRay.direction = ray.direction - same_side_normal*(Vector_3D<double>::Dot_Product(ray.direction, same_side_normal))*2;
 	bounceRay.t_max = FLT_MAX;
 	bounceRay.recursion_depth = ray.recursion_depth + 1;
+	bounceRay.direction.Normalize();
 	//LOG("bounce ray " << bounceRay.endpoint << " " << bounceRay.direction)
 	//LOG(world.Cast_Ray(bounceRay, ray))
 	 // TODO
