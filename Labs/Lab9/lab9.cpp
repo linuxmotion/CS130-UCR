@@ -14,17 +14,30 @@ int main()
 	glfwInit();
 
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+	//glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+	//glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	//glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 
 	glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
 	GLFWwindow* window = glfwCreateWindow(800, 800, "OpenGL", 0, 0);
+	if(window == NULL) {
+		std::cerr << "Failed to open GLFW window. Are your drivers up-to-date ?" << std::endl;
+		glfwTerminate();
+		return -1;
+		//exit(EXIT_FAILURE);
+	}
 	glfwMakeContextCurrent(window);
 
 	glewExperimental = GL_TRUE;
-	glewInit();
+	GLenum err = glewInit();
 
+	if (GLEW_OK != err)
+	{
+		/* Problem: glewInit failed, something is seriously wrong. */
+		fprintf(stderr, "Error: %s\n", glewGetErrorString(err));
+		return 1;
+		
+	}
 	//Initialize vertex data
 	GLfloat vertices[] = {
 		-0.5f, -0.5f,
