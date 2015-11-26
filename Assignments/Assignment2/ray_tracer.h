@@ -355,7 +355,6 @@ class Object
 public:
     Shader* material_shader;
     static const double small_t; // t has to be bigger than small_t to register an intersection with a ray
-    char *name;
     Object()
         :material_shader(0)
     {

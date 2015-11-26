@@ -71,9 +71,6 @@ void Initialize_World(Render_World& world,const int width,const int height,const
     Sphere* sphere=new Sphere(Vector_3D<double>(0,1,0),1.0);
     Sphere* sphere2=new Sphere(Vector_3D<double>(-2,1,-1),1.0);
 
-	plane->name = "Plane\0";
-	sphere->name = "S1\0";
-	sphere2->name = "S2\0";
 	
     switch(test_number)
     {
