@@ -227,10 +227,18 @@ Shade_Surface(const Ray& ray,const Object& intersection_object,const Vector_3D<d
 	 double x = intersection_point.x;
 	 double z = intersection_point.z;
 	   
-	   
-	if( ((int(x) + int(z))%2 != 0 )){
+	if(z < 0)
+		z = -z+1;
+	if(x < 0)
+		x = -x+1;
+		
+	// Procedurally generate the checkerboard texture	
+	if( (int(z) + int(x))%2 == 1 ){
 		color = Vector_3D<double>(1,1,1);
 	}
+
+	   
+	
     return color;
 }
 //--------------------------------------------------------------------------------
