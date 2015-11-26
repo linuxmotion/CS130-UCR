@@ -220,7 +220,19 @@ Shade_Surface(const Ray& ray,const Object& intersection_object,const Vector_3D<d
 
     return color;
 }
-
+Vector_3D<double> Checker_Shader::
+Shade_Surface(const Ray& ray,const Object& intersection_object,const Vector_3D<double>& intersection_point,const Vector_3D<double>& same_side_normal) const
+{
+	 Vector_3D<double> color;
+	 double x = intersection_point.x;
+	 double z = intersection_point.z;
+	   
+	   
+	if( ((int(x) + int(z))%2 != 0 )){
+		color = Vector_3D<double>(1,1,1);
+	}
+    return color;
+}
 //--------------------------------------------------------------------------------
 // Objects
 //--------------------------------------------------------------------------------
