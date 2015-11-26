@@ -179,8 +179,9 @@ Shade_Surface(const Ray& ray,const Object& intersection_object,const Vector_3D<d
 		//	}
 				
 	}
+	
 	// add blinn-phong and ambient
-	color = color + color_am;//*0.5;
+	color = color + color_am*0.5;
     
 				
 	
@@ -191,52 +192,26 @@ Vector_3D<double> Reflective_Shader::
 Shade_Surface(const Ray& ray,const Object& intersection_object,const Vector_3D<double>& intersection_point,const Vector_3D<double>& same_side_normal) const
 {
     Vector_3D<double> color;
-    Vector_3D<double> recurse;
+    Vector_3D<double> r_color;
 	// Use the base class implementation for the phong shading
 	color = Phong_Shader::Shade_Surface(ray,intersection_object,intersection_point,same_side_normal);
 
-	//LOG(ray.recursion_depth)
-	
-	if(ray.recursion_depth >= world.recursion_depth_limit)
-		return recurse;
-	// We would need to find the new ray to direct
-	// listing our current ray as the parent
-	Ray bounceRay;
-	bounceRay.endpoint = intersection_point;
-	//r = d − 2(d · n)n,
-	bounceRay.direction = ray.direction - same_side_normal*(Vector_3D<double>::Dot_Product(ray.direction, same_side_normal))*2;
-	bounceRay.t_max = FLT_MAX;
-	bounceRay.recursion_depth = ray.recursion_depth + 1;
-	bounceRay.direction.Normalize();
-	//LOG("bounce ray " << bounceRay.endpoint << " " << bounceRay.direction)
-	//LOG(world.Cast_Ray(bounceRay, ray))
-	 // TODO
-	 
-	//Vector_3D<double> color;
-	// find the closest object in the seen for this view ray
-	//const Object *closest = world.Closest_Intersection(bounceRay);
-	// if an object has been hit, it is the closest
-	//LOG("Testing the object, then determine color if exists")
-	//if(bounceRay.recursion_depth > world.recursion_depth_limit)
-	//	return color;
-		
-	const Object* closest_intersection = world.Closest_Intersection(bounceRay);
-	if(closest_intersection != NULL){
-		//LOG("We found abounce ray intersection object")
-		//LOG(ray.recursion_depth)
-		// By using the T value we can find the point of intersection
-		// intersection = (cameraPos + closestHitpoint*ray);
-		Vector_3D<double> intersection_point = bounceRay.endpoint + bounceRay.direction*bounceRay.t_max;
-		// Once we know the point of intersection we can find the normal to this point
-		Vector_3D<double> same_side_normal = closest_intersection->Normal(intersection_point);
-		//same_side_normal.z = same_side_normal.z*-1;
-		same_side_normal.Normalize();
-		recurse =  closest_intersection->material_shader->Shade_Surface(bounceRay,*closest_intersection,intersection_point,same_side_normal);
-				
-		//LOG(bounceRay.recursion_depth << " " << recurse)
+
+	if(ray.recursion_depth < world.recursion_depth_limit){
+			Ray bounceRay;
+			bounceRay.endpoint = intersection_point;
+			//r = d − 2(d · n)n,
+			bounceRay.direction = ray.direction - same_side_normal*(Vector_3D<double>::Dot_Product(ray.direction, same_side_normal))*2;
+			bounceRay.t_max = FLT_MAX;
+			bounceRay.recursion_depth = ray.recursion_depth + 1;
+			bounceRay.direction.Normalize();
+			
+			//LOG("(" << bounceRay.recursion_depth << ")" << closest->name )
+			 r_color = world.Cast_Ray(bounceRay,ray);
+
 	}
 
-    return color + color*recurse*reflectivity;
+    return color + r_color*reflectivity;
 }
 
 Vector_3D<double> Flat_Shader::
@@ -495,7 +470,7 @@ Render_Pixel(const Vector_2D<int>& pixel_index)
 	ray.direction.Normalize();// = ray.direction*(1/sqrt(Vector_3D<double>::Dot_Product(ray.direction, ray.direction)));
 	ray.t_max = FLT_MAX;
 	
-    Ray dummy_root;
+    Ray dummy_root = ray;
     Vector_3D<double> color=Cast_Ray(ray,dummy_root);
     camera.film.Set_Pixel(pixel_index,Pixel_Color(color));
 }
@@ -508,14 +483,15 @@ Cast_Ray(Ray& ray,const Ray& parent_ray)
 
 	
 	
-    // TODO
-    Vector_3D<double> color;
-	// find the closest object in the seen for this view ray
-	const Object *closest = Closest_Intersection(ray);
+    // TODO	
+    // find the closest object in the seen for this view ray
+    const Object *closest = Closest_Intersection(ray);
+    Vector_3D<double> color = background_shader->Shade_Surface(ray,*closest,Vector_3D<double>(),Vector_3D<double>());
+    
 	// if an object has been hit, it is the closest
 	//LOG("Testing the object, then determine color if exists")
 	if(closest != NULL){
-		//LOG("We found an intersection object")
+		LOG("Ray hit " << closest->name)
 		// By using the T value we can find the point of intersection
 		// intersection = (cameraPos + closestHitpoint*ray);
 		Vector_3D<double> intersection_point = ray.endpoint + ray.direction*ray.t_max;
@@ -524,14 +500,52 @@ Cast_Ray(Ray& ray,const Ray& parent_ray)
 		//same_side_normal.z = same_side_normal.z*-1;
 		same_side_normal.Normalize();
 		//ray.recursion_depth++;
-		color = closest->material_shader->Shade_Surface(ray,*closest,intersection_point,same_side_normal);
-		
-
-	}
-	else{
-		
-			return background_shader->Shade_Surface(ray,*closest,Vector_3D<double>(),Vector_3D<double>());
+		color = closest->material_shader->Shade_Surface(ray,*closest,intersection_point,same_side_normal);		
+				
 	}
 	
     return color;
 }
+
+
+	//if(ray.recursion_depth  >= world.recursion_depth_limit)
+		//return color;
+	//// We would need to find the new ray to direct
+	//// listing our current ray as the parent
+	//Ray bounceRay;
+	//bounceRay.endpoint = intersection_point;
+	////r = d − 2(d · n)n,
+	//bounceRay.direction = ray.direction - same_side_normal*(Vector_3D<double>::Dot_Product(ray.direction, same_side_normal))*2;
+	//bounceRay.t_max = FLT_MAX;
+	//bounceRay.recursion_depth = ray.recursion_depth + 1;
+	//bounceRay.direction.Normalize();
+	////LOG("bounce ray " << bounceRay.endpoint << " " << bounceRay.direction)
+	////LOG(world.Cast_Ray(bounceRay, ray))
+	 //// TODO
+	 
+	////Vector_3D<double> color;
+	//// find the closest object in the seen for this view ray
+	////const Object *closest = world.Closest_Intersection(bounceRay);
+	//// if an object has been hit, it is the closest
+	////LOG("Testing the object, then determine color if exists")
+	////if(bounceRay.recursion_depth > world.recursion_depth_limit)
+	////	return color;
+		
+	//const Object* closest_intersection = world.Closest_Intersection(bounceRay);
+	//if(closest_intersection != NULL){
+		////LOG("We found abounce ray intersection object")
+		////LOG(ray.recursion_depth)
+		//// By using the T value we can find the point of intersection
+		//// intersection = (cameraPos + closestHitpoint*ray);
+		//Vector_3D<double> intersection_point = bounceRay.endpoint + bounceRay.direction*bounceRay.t_max;
+		//// Once we know the point of intersection we can find the normal to this point
+		//Vector_3D<double> normal = closest_intersection->Normal(intersection_point);
+		////same_side_normal.z = same_side_normal.z*-1;
+		//normal.Normalize(); 
+		//LOG("(" << bounceRay.recursion_depth << ")" << intersection_object.name << " bounce ray hit " << closest_intersection->name)
+		//recurse =  closest_intersection->material_shader->Shade_Surface(bounceRay,*closest_intersection,intersection_point,normal);
+				
+		////LOG(bounceRay.recursion_depth << " " << recurse)
+	//}
+
+    //return color + color*recurse*reflectivity;
