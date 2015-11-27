@@ -5,6 +5,11 @@
  * Passes test 1 - 4
  * Test 4 has the checkerboard texture applied to the plane
  *  This texture is reflected in the spheres
+ * Modified ray_traccer.h to add my custom checker texture class
+ * Change the World_Position function to accomadate for
+ * a naive AA sampling algorithm
+ * Set the sampling size to 4 in the main.cpp file for all tests
+ * ie, 16 samples
  */
 
 
@@ -166,7 +171,7 @@ Normal(const Vector_3D<double>& location) const
 //--------------------------------------------------------------------------------
 // Find the world position of the input pixel
 Vector_3D<double> Camera::
-World_Position(const Vector_2D<int>& pixel_index)
+World_Position(const Vector_2D<int>& pixel_index,const Vector_2D<int>& sample_index, int sample_size)
 {
 	
 	// Calculate where the pixel is in world space
@@ -178,10 +183,11 @@ World_Position(const Vector_2D<int>& pixel_index)
 	// V is the right vecotor on the image plane
 	// du is the amount to change is the horizontal direction along U
 	// dv is the change in vertical direction along V
-	// u = left   + ((right-left)*(pixel_index.x + 0.5))/WIDTH;
-	// v = bottom + ((top-bottom)*(pixel_index.y + 0.5))/HEIGHT;
+	// u = left   + ((right-left)*(pixel_index.x + (sample_index.x + 0.5)/sample_size))/WIDTH;
+	// v = bottom + ((top-bottom)*(pixel_index.y + (sample_index.y + 0.5)/sample_size))/HEIGHT;
+	// which is given in chapter 4 and 13
 	// where width and height are found using the pixel grid from the film class
-	// return the ip for the pixel
+	// return the ip for the pixel for the given sample size
 
 }
 //--------------------------------------------------------------------------------
@@ -209,14 +215,17 @@ void Render_World::
 Render_Pixel(const Vector_2D<int>& pixel_index)
 {
 
-	// We find the ray enpoint and direction
+	// We find the ray enpoint
+	// then a direction is found
 	// by setting the enpoint at the camera and finding the direction from 
-	// camera to the pixel_grid in world space
+	// camera to the pixel_grid in world space given a sample index poistion
 	// I implement finding the direction from the grid to the camera
 	// so I swich the direction. Normalize the direction but not the endpoint
 	// Init t_max to biggest value allowable(ie, inf)
 	// Cast the first ray into the scene creating to ray objects of the same type
-	// finally set the pixel color using the return vlaue from Cast_ray
+	// finally set the pixel color using the return values from Cast_ray 
+	// and divide by the sample_size^2
+	// Creating the AA affect for the scene
 }
 
 // cast ray and return the color of the closest intersected surface point, 
