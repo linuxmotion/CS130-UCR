@@ -487,7 +487,7 @@ public:
         film.height=film.width/aspect_ratio;
     }
 
-    Vector_3D<double> World_Position(const Vector_2D<int>& pixel_index);
+    Vector_3D<double> World_Position(const Vector_2D<int>& pixel_index, const Vector_2D<int>&  sample_index, const int samplesize);
 };
 //--------------------------------------------------------------------------------
 // Render_World
@@ -501,9 +501,10 @@ public:
     Camera camera;
     bool enable_shadows;
     int recursion_depth_limit;
+    int samplesize;
 
     Render_World()
-        :background_shader(new Flat_Shader(*this,Vector_3D<double>())),enable_shadows(true),recursion_depth_limit(3)
+        :background_shader(new Flat_Shader(*this,Vector_3D<double>())),enable_shadows(true),recursion_depth_limit(3), samplesize(1)
     {}
 
     ~Render_World()
@@ -513,6 +514,7 @@ public:
         for(unsigned int i=0;i<lights.size();i++) delete lights[i];
     }
 
+	
     void Render_Pixel(const Vector_2D<int>& pixel_index);
     Vector_3D<double> Cast_Ray(Ray& ray,const Ray& parent_ray);
     const Object* Closest_Intersection(Ray& ray);

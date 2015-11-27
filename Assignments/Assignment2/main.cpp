@@ -115,6 +115,7 @@ void Initialize_World(Render_World& world,const int width,const int height,const
             exit(1);
     }
 
+	world.samplesize = 4;
     // lights
     Light* point_light=new Point_Light(Vector_3D<double>(-2,7,-3),Vector_3D<double>(1,1,1),.5);
     Light* point_light2=new Point_Light(Vector_3D<double>(3,5,-3),Vector_3D<double>(1,1,1),.5);

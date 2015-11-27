@@ -1,0 +1,240 @@
+/**
+ * ray_tracer.cpp
+ * CS230 Assignment 2, Winter 2012
+ * -------------------------------
+ * Passes test 1 - 4
+ * Test 4 has the checkerboard texture applied to the plane
+ *  This texture is reflected in the spheres
+ */
+
+
+//----------------------------------------------------------------------
+// Color models
+//----------------------------------------------------------------------
+// Lambertian model
+//Ld = kd I max(0, n · l)
+Vector_3D<double> Lambertian_shading(const Ray& ray,
+					const Light* light,
+					const Vector_3D<double>& color_diffuse,
+					const Vector_3D<double>& intersection_point,
+					const Vector_3D<double>& same_side_normal){
+	
+	//Implements lambertian(diffuse) shading
+	// L = k_d*I*max(0, n · l)
+	// where n is the normal to the surface
+	// l is the direction of the light ray
+	// I is the emitted light given a light and a ray
+	// found by calling light->Emitted_light(ray)
+	// and k_d is the diffuse cooefficent to the object
+
+}
+	
+// specular model
+//Ls = ks I max(0, n · h) p ,
+Vector_3D<double> Specular_shading(const Ray& ray,
+									 const Light* light,
+									 const Vector_3D<double>& color_specular,
+									 const Vector_3D<double>& intersection_point,
+									 const Vector_3D<double>& same_side_normal, 
+									 const double specular_power){
+	// implements	specular shading using the phong model
+	//k_s*I*max(0, n · h)^p 
+	// where n is the normal to the surface
+	// h is the half vector of ray.direction and lightray
+	// k_s is the specular cooefficent to the object
+	// I is the emitted light given a light and a ray
+	// found by calling light->Emitted_light(ray)
+	// and P is the specular power(shininess) of the object
+
+}
+//--------------------------------------------------------------------------------
+// Shader
+//--------------------------------------------------------------------------------
+Vector_3D<double> Phong_Shader::
+Shade_Surface(const Ray& ray,const Object& intersection_object,const Vector_3D<double>& intersection_point,const Vector_3D<double>& same_side_normal) const
+{
+    
+	// determine the coloring from each light
+	// it is the sum of all light sources and is given by
+	// L =k_a*I + sum[for each light](k_d*I*max(0, n · l)) + sum[for each light](k_s*I*max(0, n · h)^p)
+
+	// for each light in the world we want the contribution to that point
+	// We must then apply both lambertian shading and specular shading
+	// to acheive this.
+	// Do not add contribution from this point if it is in a shadow
+	// skip the lambertian and specular shading if in shadow
+	// ambient term remains since shadows retain some color of the shadowed object
+	// return the ambient color as well as the computed diffuse/specular colors 
+    
+}
+
+Vector_3D<double> Reflective_Shader::
+Shade_Surface(const Ray& ray,const Object& intersection_object,const Vector_3D<double>& intersection_point,const Vector_3D<double>& same_side_normal) const
+{
+
+
+	// Since we derive refelectivity from the phong shader we can shade the object will a calll to the base class
+	// shader model
+	// Therefor we only need to know the contribution of reflected rays.
+	// If we want reflective ray, or we havnt bounced to many rays 
+	// we create a bounce ray and cast the ray using the world Cast_Ray function
+	// We then need to add the color trerm from the first one plus all
+	// the recursive calls, since each object has a reflectivity factor 
+	// this is also used to determin how much of the reflected rays contribute
+        // return the color of the object and its reflected ray contribution
+}
+
+Vector_3D<double> Flat_Shader::
+Shade_Surface(const Ray& ray,const Object& intersection_object,const Vector_3D<double>& intersection_point,const Vector_3D<double>& same_side_normal) const
+{
+    	// Just return the color
+}
+Vector_3D<double> Checker_Shader::
+Shade_Surface(const Ray& ray,const Object& intersection_object,const Vector_3D<double>& intersection_point,const Vector_3D<double>& same_side_normal) const
+{
+
+	// Generate a procedural checkerboard pattern
+	// Return either white or black
+
+}
+//--------------------------------------------------------------------------------
+// Objects
+//--------------------------------------------------------------------------------
+// determine if the ray intersects with the sphere
+// if there is an intersection, set t_max, current_object, and semi_infinite as appropriate and return true
+bool Sphere::
+Intersection(Ray& ray) const
+{
+
+	// Find an intersectio nwith a sphere
+	// We know that a sphere has intersection point 
+	//  t = −d · (e − c) ± sqrt((d · (e − c))^2 − (d · d) ((e − c) · (e − c) − R 2 ))
+	//	 divided by (d · d)
+
+	// First set up the discriminant, if this value is less than zero(imaginary)
+	// we know there is no intersection so we will not comute any fursther.
+ 	// If the discriminant >= 0 than we have at least one hit point
+	// Find the possible two values of t given the equation above.
+ 	// If there are two points test to see which one is closer.
+	// The the ray to the proper values for 
+	// t_max, semi_infinite, and curren_object
+	// return true if an intersection is found
+
+}
+
+Vector_3D<double> Sphere::
+Normal(const Vector_3D<double>& location) const
+{
+
+	// Now we need to compute the normal to this point
+	// As discussed in Section 2.5.4, the normal vector at point p is given by the
+	// gradient n = 2(p − c). The unit normal is (p − c)/R.
+	// where P is the point of intersection and C is the center 
+	// of the sphere
+	// return the normal
+
+}
+
+
+// determine if the ray intersects with the sphere
+// if there is an intersection, set t_max, current_object, and semi_infinite as appropriate and return true
+bool Plane::
+Intersection(Ray& ray) const
+{
+
+	// p0 is out plane definition point
+	// l0 is the beginning of the ray
+	// n is the normal to the plane
+	// l is the direction of the ray
+	//t=(p0−l0)⋅n/l⋅n
+	// First test to to see if the dot product is positive
+	// If it is, there is a point on the plane
+	// Compute T uusing the above formula
+	// The the ray to the proper values for 
+	// t_max, semi_infinite, and curren_object
+	// return tue if there was an intersection
+
+}
+
+Vector_3D<double> Plane::
+Normal(const Vector_3D<double>& location) const
+{
+    // Normal was given, just return it
+}
+//--------------------------------------------------------------------------------
+// Camera
+//--------------------------------------------------------------------------------
+// Find the world position of the input pixel
+Vector_3D<double> Camera::
+World_Position(const Vector_2D<int>& pixel_index)
+{
+	
+	// Calculate where the pixel is in world space
+	// A pixel on the image plane (ip) is therefore 
+	// ip = e + d + uU(du) + vV(dv)
+	// where e is the camera origin
+	// d is the focal length
+	// U is the up vector on the image plane
+	// V is the right vecotor on the image plane
+	// du is the amount to change is the horizontal direction along U
+	// dv is the change in vertical direction along V
+	// u = left   + ((right-left)*(pixel_index.x + 0.5))/WIDTH;
+	// v = bottom + ((top-bottom)*(pixel_index.y + 0.5))/HEIGHT;
+	// where width and height are found using the pixel grid from the film class
+	// return the ip for the pixel
+
+}
+//--------------------------------------------------------------------------------
+// Render_World
+//--------------------------------------------------------------------------------
+// Find the closest object of intersection and return a pointer to it
+//   if the ray intersects with an object, then ray.t_max, ray.current_object, and ray.semi_infinite will be set appropriately
+//   if there is no intersection do not modify the ray and return 0
+const Object* Render_World::
+Closest_Intersection(Ray& ray)
+{
+
+
+	// For any ray determin =e if that ray hits an object
+	// in the scene, if an object is hit, make sure it is the closest intersection
+	// we do not care what sublass it is, all we need is the virtual definitaion
+	// of the Intersection for objects
+	// return the closest intersection if one is found
+	// else just return a the NULL(zero) pointer
+
+}
+
+// set up the initial view ray and call 
+void Render_World::
+Render_Pixel(const Vector_2D<int>& pixel_index)
+{
+
+	// We find the ray enpoint and direction
+	// by setting the enpoint at the camera and finding the direction from 
+	// camera to the pixel_grid in world space
+	// I implement finding the direction from the grid to the camera
+	// so I swich the direction. Normalize the direction but not the endpoint
+	// Init t_max to biggest value allowable(ie, inf)
+	// Cast the first ray into the scene creating to ray objects of the same type
+	// finally set the pixel color using the return vlaue from Cast_ray
+}
+
+// cast ray and return the color of the closest intersected surface point, 
+// or the background color if there is no object intersection
+Vector_3D<double> Render_World::
+Cast_Ray(Ray& ray,const Ray& parent_ray)
+{
+
+
+	// Set the return color of the scene to the background shader
+	// Cast a ray into the scene from ray.endpoint in ray.direction
+	// This will use Closes_intersection call to determine if this ray
+	// hits an object in the scene, if the ray hits an object call its
+	// shader function and return that color instead of the background
+	// We pass along the ray, the object, its intersection point, and normal
+	// into the shade function
+		
+
+}
+
+
