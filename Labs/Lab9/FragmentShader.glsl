@@ -4,5 +4,10 @@ out vec4 out_color;
 
 void main()
 {
-	out_color = vec4(1.0, 1.0, 1.0, 1.0);
+	float z = gl_FragCoord.z / gl_FragCoord.w;
+	
+	gl_FragColor = vec4(z,z,z,z);
+	
+
+	
 }

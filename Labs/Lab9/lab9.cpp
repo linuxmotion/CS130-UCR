@@ -14,9 +14,9 @@ int main()
 	glfwInit();
 
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-	//glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-	//glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	//glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 
 	glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
 	GLFWwindow* window = glfwCreateWindow(800, 800, "OpenGL", 0, 0);
@@ -35,14 +35,50 @@ int main()
 	{
 		/* Problem: glewInit failed, something is seriously wrong. */
 		fprintf(stderr, "Error: %s\n", glewGetErrorString(err));
-		return 1;
+		return -1;
 		
 	}
-	//Initialize vertex data
+
+  // Our vertices. Three consecutive floats give a 3D vertex; Three consecutive vertices give a triangle.
+  // A cube has 6 faces with 2 triangles each, so this makes 6*2=12 triangles, and 12*3 vertices
 	GLfloat vertices[] = {
-		-0.5f, -0.5f,
-		0.0f, 0.5f,
-		0.5f, -0.5f };
+		-1.0f,-1.0f,-1.0f, // triangle 1 : begin
+           -1.0f,-1.0f, 1.0f,
+           -1.0f, 1.0f, 1.0f, // triangle 1 : end
+            1.0f, 1.0f,-1.0f, // triangle 2 : begin
+           -1.0f,-1.0f,-1.0f,
+           -1.0f, 1.0f,-1.0f, // triangle 2 : end
+            1.0f,-1.0f, 1.0f,
+           -1.0f,-1.0f,-1.0f,
+            1.0f,-1.0f,-1.0f,
+            1.0f, 1.0f,-1.0f,
+            1.0f,-1.0f,-1.0f,
+           -1.0f,-1.0f,-1.0f,
+           -1.0f,-1.0f,-1.0f,
+           -1.0f, 1.0f, 1.0f,
+           -1.0f, 1.0f,-1.0f,
+            1.0f,-1.0f, 1.0f,
+           -1.0f,-1.0f, 1.0f,
+           -1.0f,-1.0f,-1.0f,
+           -1.0f, 1.0f, 1.0f,
+           -1.0f,-1.0f, 1.0f,
+            1.0f,-1.0f, 1.0f,
+            1.0f, 1.0f, 1.0f,
+            1.0f,-1.0f,-1.0f,
+            1.0f, 1.0f,-1.0f,
+            1.0f,-1.0f,-1.0f,
+            1.0f, 1.0f, 1.0f,
+            1.0f,-1.0f, 1.0f,
+            1.0f, 1.0f, 1.0f,
+            1.0f, 1.0f,-1.0f,
+           -1.0f, 1.0f,-1.0f,
+            1.0f, 1.0f, 1.0f,
+           -1.0f, 1.0f,-1.0f,
+           -1.0f, 1.0f, 1.0f,
+            1.0f, 1.0f, 1.0f,
+           -1.0f, 1.0f, 1.0f,
+            1.0f,-1.0f, 1.0f
+            };
 
 	GLuint vbo;
 	glGenBuffers(1, &vbo);
@@ -68,7 +104,7 @@ int main()
 
 	GLint posAttrib = glGetAttribLocation(shaderProgram, "position");
 	//Link vertex position data to the shader position variable
-	glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 0, 0);
+	glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(posAttrib);
 
 	//Initialize uniforms in the tessellation control shader
@@ -80,6 +116,7 @@ int main()
 	glUniform1f(TessLevelOuter, 1);
 
 	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	
 
 	while (!glfwWindowShouldClose(window))
 	{
@@ -87,7 +124,7 @@ int main()
 		glfwPollEvents();
 		glClear(GL_COLOR_BUFFER_BIT);
 		glPatchParameteri(GL_PATCH_VERTICES, 3);       // tell OpenGL that every patch has 3 verts
-		glDrawArrays(GL_PATCHES, 0, 3);					//Draw vertices
+		glDrawArrays(GL_PATCHES, 0, 36);			   //Draw the patches
 	}
 
 	glfwTerminate();
